@@ -1,41 +1,67 @@
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+app.UseCors("Frontend");
 
-var summaries = new[]
+app.MapGet("/", () => Results.Ok(new
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    name = "AI Incident Copilot API",
+    status = "Running"
+}));
 
-app.MapGet("/weatherforecast", () =>
+app.MapPost("/api/incidents/analyze", (IncidentAnalysisRequest request) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    var response = new IncidentAnalysisResponse(
+        Summary: $"{request.ServiceName} is experiencing {request.Severity.ToLower()} symptoms in {request.Environment}.",
+        ProbableCause: "The most likely cause is a downstream dependency timeout or resource saturation based on the submitted symptoms and logs.",
+        Confidence: "Medium",
+        RecommendedSteps:
+        [
+            "Check recent deployments for the affected service.",
+            "Review application logs around the first reported error time.",
+            "Inspect database, queue, and external API latency metrics.",
+            "Validate retry, timeout, and circuit breaker settings.",
+            "Prepare a rollback plan if errors correlate with a recent release."
+        ],
+        DraftUpdate: $"Investigating {request.Severity.ToLower()} incident affecting {request.ServiceName} in {request.Environment}. Initial analysis suggests dependency latency or timeout behavior. Next update will follow after log and metrics review."
+    );
+
+    return Results.Ok(response);
+});
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+record IncidentAnalysisRequest(
+    string ServiceName,
+    string Environment,
+    string Severity,
+    string Symptoms,
+    string Logs
+);
+
+record IncidentAnalysisResponse(
+    string Summary,
+    string ProbableCause,
+    string Confidence,
+    string[] RecommendedSteps,
+    string DraftUpdate
+);

@@ -1,121 +1,183 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { FormEvent, useState } from 'react'
 import './App.css'
 
+type IncidentForm = {
+  serviceName: string
+  environment: string
+  severity: string
+  symptoms: string
+  logs: string
+}
+
+type IncidentAnalysis = {
+  summary: string
+  probableCause: string
+  confidence: string
+  recommendedSteps: string[]
+  draftUpdate: string
+}
+
+const initialForm: IncidentForm = {
+  serviceName: 'Pricing API',
+  environment: 'Production',
+  severity: 'High',
+  symptoms: 'Users are seeing 500 errors when saving price updates.',
+  logs: 'System.TimeoutException: Timeout while connecting to PostgreSQL',
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [form, setForm] = useState<IncidentForm>(initialForm)
+  const [analysis, setAnalysis] = useState<IncidentAnalysis | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const updateField = (field: keyof IncidentForm, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  const analyzeIncident = async (event: FormEvent) => {
+    event.preventDefault()
+    setIsLoading(true)
+    setError('')
+    setAnalysis(null)
+
+    try {
+      const response = await fetch('http://localhost:5194/api/incidents/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(form),
+      })
+
+      if (!response.ok) {
+        throw new Error('Analysis request failed')
+      }
+
+      const data = (await response.json()) as IncidentAnalysis
+      setAnalysis(data)
+    } catch {
+      setError('Unable to analyze the incident. Confirm the .NET API is running on port 5194.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <main className="app-shell">
+      <section className="workspace-header">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+          <p className="eyebrow">AI Incident Copilot</p>
+          <h1>Production incident analysis workspace</h1>
+          <p className="intro">
+            Paste incident symptoms and logs to generate a structured investigation plan.
           </p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
       </section>
 
-      <div className="ticks"></div>
+      <section className="workspace-grid">
+        <form className="incident-form" onSubmit={analyzeIncident}>
+          <label>
+            Service name
+            <input
+              value={form.serviceName}
+              onChange={(event) => updateField('serviceName', event.target.value)}
+            />
+          </label>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
+          <div className="form-row">
+            <label>
+              Environment
+              <select
+                value={form.environment}
+                onChange={(event) => updateField('environment', event.target.value)}
+              >
+                <option>Production</option>
+                <option>Staging</option>
+                <option>Development</option>
+              </select>
+            </label>
+
+            <label>
+              Severity
+              <select
+                value={form.severity}
+                onChange={(event) => updateField('severity', event.target.value)}
+              >
+                <option>Critical</option>
+                <option>High</option>
+                <option>Medium</option>
+                <option>Low</option>
+              </select>
+            </label>
+          </div>
+
+          <label>
+            Symptoms
+            <textarea
+              value={form.symptoms}
+              onChange={(event) => updateField('symptoms', event.target.value)}
+              rows={5}
+            />
+          </label>
+
+          <label>
+            Logs
+            <textarea
+              value={form.logs}
+              onChange={(event) => updateField('logs', event.target.value)}
+              rows={8}
+            />
+          </label>
+
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? 'Analyzing...' : 'Analyze incident'}
+          </button>
+
+          {error && <p className="error-message">{error}</p>}
+        </form>
+
+        <section className="analysis-panel">
+          {!analysis && (
+            <div className="empty-state">
+              <h2>Analysis will appear here</h2>
+              <p>Start with the sample incident, then try your own logs.</p>
+            </div>
+          )}
+
+          {analysis && (
+            <div className="analysis-result">
+              <div className="result-header">
+                <div>
+                  <p className="eyebrow">Mock AI Analysis</p>
+                  <h2>{analysis.summary}</h2>
+                </div>
+                <span>{analysis.confidence}</span>
+              </div>
+
+              <article>
+                <h3>Probable cause</h3>
+                <p>{analysis.probableCause}</p>
+              </article>
+
+              <article>
+                <h3>Recommended steps</h3>
+                <ol>
+                  {analysis.recommendedSteps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+              </article>
+
+              <article>
+                <h3>Draft incident update</h3>
+                <p>{analysis.draftUpdate}</p>
+              </article>
+            </div>
+          )}
+        </section>
       </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    </main>
   )
 }
 

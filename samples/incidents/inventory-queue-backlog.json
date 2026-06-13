@@ -1,0 +1,7 @@
+{
+  "serviceName": "Inventory Sync Worker",
+  "environment": "Production",
+  "severity": "Critical",
+  "symptoms": "Inventory availability is delayed across multiple downstream systems. Operations reports that purchase order updates are not appearing for stores.",
+  "logs": "2026-06-13T15:42:10Z WARN InventorySyncWorker Queue depth rising\nQueue=inventory-events VisibleMessages=18432 AgeOfOldestMessage=00:27:14\nAWS.Lambda.ThrottlingException: Rate exceeded\nDLQ messages increased from 12 to 438 in 15 minutes\nConsumerSuccessRate=71%"
+}

@@ -1,0 +1,7 @@
+{
+  "serviceName": "Pricing API",
+  "environment": "Production",
+  "severity": "High",
+  "symptoms": "Users are seeing 500 errors when saving price updates. The issue started shortly after the morning deployment and appears limited to price maintenance workflows.",
+  "logs": "2026-06-13T14:08:22Z ERR Pricing.Api.PriceUpdateController Save failed\nSystem.TimeoutException: Timeout while connecting to PostgreSQL\nNpgsql.NpgsqlException: Exception while reading from stream\nConnectionPool: Active=98 Idle=0 Waiting=42 Max=100\nTraceId=prd-price-7f21"
+}

@@ -9,7 +9,7 @@
   display: flex;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 28px;
+  margin-bottom: 22px;
 }
 
 .eyebrow {
@@ -30,10 +30,51 @@
 }
 
 .intro {
-  max-width: 680px;
+  max-width: 760px;
   margin-top: 12px;
   color: #4b5563;
   font-size: 16px;
+}
+
+.scenario-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.scenario-card {
+  min-height: 86px;
+  border: 1px solid #d6dce5;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  cursor: pointer;
+  padding: 16px;
+  text-align: left;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+}
+
+.scenario-card:hover,
+.scenario-card.active {
+  border-color: #0f766e;
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.14);
+}
+
+.scenario-card span,
+.scenario-card small {
+  display: block;
+}
+
+.scenario-card span {
+  margin-bottom: 6px;
+  font-weight: 800;
+}
+
+.scenario-card small {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .workspace-grid {
@@ -100,7 +141,7 @@ textarea:focus {
   gap: 14px;
 }
 
-button {
+.primary-action {
   min-height: 44px;
   border: 0;
   border-radius: 6px;
@@ -111,11 +152,11 @@ button {
   font-weight: 800;
 }
 
-button:hover {
+.primary-action:hover {
   background: #115e59;
 }
 
-button:disabled {
+.primary-action:disabled {
   cursor: not-allowed;
   background: #94a3b8;
 }
@@ -199,7 +240,8 @@ article p {
   color: #4b5563;
 }
 
-ol {
+ol,
+.insight-list {
   margin: 0;
   padding-left: 22px;
   color: #4b5563;
@@ -207,6 +249,37 @@ ol {
 
 li + li {
   margin-top: 8px;
+}
+
+.reference-list {
+  display: grid;
+  gap: 12px;
+}
+
+.reference-item {
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 12px;
+}
+
+.reference-item strong,
+.reference-item code,
+.reference-item p {
+  display: block;
+}
+
+.reference-item strong {
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.reference-item code {
+  width: fit-content;
+  max-width: 100%;
+  margin: 7px 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 900px) {
@@ -220,7 +293,8 @@ li + li {
   }
 
   .workspace-grid,
-  .form-row {
+  .form-row,
+  .scenario-strip {
     grid-template-columns: 1fr;
   }
 

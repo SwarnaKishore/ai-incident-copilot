@@ -8,6 +8,7 @@ type IncidentForm = {
   severity: string
   symptoms: string
   logs: string
+  analysisMode: 'mock' | 'claude'
 }
 
 type RunbookReference = {
@@ -24,6 +25,8 @@ type IncidentAnalysis = {
   recommendedSteps: string[]
   runbookReferences: RunbookReference[]
   draftUpdate: string
+  analysisProvider: string
+  model: string
 }
 
 type DemoScenario = IncidentForm & {
@@ -31,6 +34,12 @@ type DemoScenario = IncidentForm & {
   name: string
   description: string
 }
+
+const inputLimits = {
+  serviceName: 80,
+  symptoms: 1000,
+  logs: 4000,
+} as const
 
 const demoScenarios: DemoScenario[] = [
   {
@@ -40,6 +49,7 @@ const demoScenarios: DemoScenario[] = [
     serviceName: 'Pricing API',
     environment: 'Production',
     severity: 'High',
+    analysisMode: 'mock',
     symptoms: 'Users are seeing 500 errors when saving price updates. The issue started shortly after the morning deployment and appears limited to price maintenance workflows.',
     logs: `2026-06-13T14:08:22Z ERR Pricing.Api.PriceUpdateController Save failed
 System.TimeoutException: Timeout while connecting to PostgreSQL
@@ -54,6 +64,7 @@ TraceId=prd-price-7f21`,
     serviceName: 'Inventory Sync Worker',
     environment: 'Production',
     severity: 'Critical',
+    analysisMode: 'mock',
     symptoms: 'Inventory availability is delayed across multiple downstream systems. Operations reports that purchase order updates are not appearing for stores.',
     logs: `2026-06-13T15:42:10Z WARN InventorySyncWorker Queue depth rising
 Queue=inventory-events VisibleMessages=18432 AgeOfOldestMessage=00:27:14
@@ -77,12 +88,19 @@ function App() {
     setForm((current) => ({ ...current, [field]: value }))
   }
 
+  const renderCounter = (value: string, limit: number) => (
+    <span className={value.length >= limit ? 'char-count at-limit' : 'char-count'}>
+      {value.length.toLocaleString()} / {limit.toLocaleString()}
+    </span>
+  )
+
   const loadScenario = (scenario: DemoScenario) => {
     setSelectedScenarioId(scenario.id)
     setForm({
       serviceName: scenario.serviceName,
       environment: scenario.environment,
       severity: scenario.severity,
+      analysisMode: form.analysisMode,
       symptoms: scenario.symptoms,
       logs: scenario.logs,
     })
@@ -147,8 +165,12 @@ function App() {
       <section className="workspace-grid">
         <form className="incident-form" onSubmit={analyzeIncident}>
           <label>
-            Service name
+            <span className="label-row">
+              Service name
+              {renderCounter(form.serviceName, inputLimits.serviceName)}
+            </span>
             <input
+              maxLength={inputLimits.serviceName}
               value={form.serviceName}
               onChange={(event) => updateField('serviceName', event.target.value)}
             />
@@ -182,8 +204,23 @@ function App() {
           </div>
 
           <label>
-            Symptoms
+            Analysis mode
+            <select
+              value={form.analysisMode}
+              onChange={(event) => updateField('analysisMode', event.target.value as IncidentForm['analysisMode'])}
+            >
+              <option value="mock">Mock - free local demo</option>
+              <option value="claude">Claude - real AI analysis</option>
+            </select>
+          </label>
+
+          <label>
+            <span className="label-row">
+              Symptoms
+              {renderCounter(form.symptoms, inputLimits.symptoms)}
+            </span>
             <textarea
+              maxLength={inputLimits.symptoms}
               value={form.symptoms}
               onChange={(event) => updateField('symptoms', event.target.value)}
               rows={5}
@@ -191,8 +228,12 @@ function App() {
           </label>
 
           <label>
-            Logs
+            <span className="label-row">
+              Logs
+              {renderCounter(form.logs, inputLimits.logs)}
+            </span>
             <textarea
+              maxLength={inputLimits.logs}
               value={form.logs}
               onChange={(event) => updateField('logs', event.target.value)}
               rows={8}
@@ -218,11 +259,17 @@ function App() {
             <div className="analysis-result">
               <div className="result-header">
                 <div>
-                  <p className="eyebrow">Runbook-backed mock analysis</p>
+                  <p className="eyebrow">
+                    {analysis.analysisProvider ?? (form.analysisMode === 'claude' ? 'Claude' : 'Mock')} analysis
+                  </p>
                   <h2>{analysis.summary}</h2>
                 </div>
                 <span>{analysis.confidence}</span>
               </div>
+
+              {analysis.model && (
+                <p className="model-note">Generated with {analysis.model}</p>
+              )}
 
               <article>
                 <h3>Probable cause</h3>

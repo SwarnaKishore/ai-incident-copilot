@@ -108,6 +108,24 @@ label {
   font-weight: 700;
 }
 
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.char-count {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.char-count.at-limit {
+  color: #b45309;
+}
+
 input,
 select,
 textarea {
@@ -217,6 +235,12 @@ textarea:focus {
   font-size: 13px;
   font-weight: 800;
   padding: 5px 10px;
+}
+
+.model-note {
+  margin: -8px 0 0;
+  color: #64748b;
+  font-size: 13px;
 }
 
 article {

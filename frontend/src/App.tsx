@@ -170,13 +170,24 @@ function App() {
           <p className="eyebrow">AI Incident Copilot</p>
           <h1>Production incident analysis workspace</h1>
           <p className="intro">
-            Analyze production symptoms, logs, and runbook context in either free mock mode or Claude-powered mode.
+            Turn incident symptoms and logs into an investigation brief your team can act on.
           </p>
+          <div className="hero-chips" aria-label="Analysis outputs">
+            <span>Likely cause</span>
+            <span>Next steps</span>
+            <span>Runbook guidance</span>
+            <span>Status draft</span>
+          </div>
         </div>
 
-        <div className="hero-status">
-          <span>Mode</span>
-          <strong>{form.analysisMode === 'claude' ? 'Claude analysis' : 'Mock analysis'}</strong>
+        <div className="hero-summary">
+          <div className="hero-status">
+            <span>Active mode</span>
+            <strong>{form.analysisMode === 'claude' ? 'Claude analysis' : 'Mock analysis'}</strong>
+          </div>
+          <p>
+            Mock is free for demos. Claude uses the backend AI configuration for real analysis.
+          </p>
         </div>
       </section>
 
@@ -312,6 +323,11 @@ function App() {
         <section className="analysis-panel">
           {!analysis && (
             <div className="empty-state">
+              <div className="empty-preview" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
               <h2>Analysis will appear here</h2>
               <p>Select an analysis mode, choose or edit an incident, then run the analysis.</p>
             </div>

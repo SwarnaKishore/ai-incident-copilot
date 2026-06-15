@@ -127,3 +127,7 @@ Mock mode works without an API key.
 - Playwright end-to-end tests
 - Public deployment with backend-only secret configuration
 - Evaluation cases for known incident scenarios
+
+## License
+
+MIT License. See [LICENSE](LICENSE).

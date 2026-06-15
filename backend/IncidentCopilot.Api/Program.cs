@@ -251,15 +251,19 @@ static class ClaudeIncidentAnalyzer
             {{request.Logs}}
 
             Available runbook context:
-            1. docs/runbooks/pricing-api-database-timeouts.md
-               Signals: HTTP 500 errors on price-save workflows, PostgreSQL/Npgsql timeout exceptions, connection pool waits.
-               Triage: check API latency, PostgreSQL connections, slow queries, lock waits, deployment correlation, endpoint traffic concentration.
+            1. docs/runbooks/api-error-and-timeout-triage.md
+               Signals: elevated 5xx errors, request timeouts, retry storms, connection pool exhaustion, slow downstream responses.
+               Triage: check error rate, latency percentiles, endpoint concentration, recent deployments, dependency health, timeout and retry settings.
 
-            2. docs/runbooks/inventory-queue-backlog.md
-               Signals: SQS visible message count and age of oldest message increase, delayed downstream inventory updates, worker throttles, DLQ growth.
-               Triage: check queue depth, in-flight count, oldest message age, worker duration/errors/throttles, DLQ poison messages, producer volume.
+            2. docs/runbooks/async-processing-backlog-triage.md
+               Signals: queue depth growth, delayed downstream updates, consumer failures, worker throttling, dead-letter volume, message age increase.
+               Triage: check producer volume, consumer throughput, retry failures, poison messages, worker scaling, dependency bottlenecks.
 
-            3. docs/runbooks/incident-communications.md
+            3. docs/runbooks/dependency-and-resource-saturation.md
+               Signals: database/API/cache/storage latency, connection waits, thread pool pressure, CPU/memory saturation, lock contention.
+               Triage: correlate resource metrics, dependency latency, slow operations, saturation points, deployment timing, and blast radius.
+
+            4. docs/runbooks/incident-communications.md
                Guidance: create concise stakeholder updates with current impact, suspected cause, mitigation steps, and next update timing.
             """;
     }
@@ -297,29 +301,30 @@ static class IncidentAnalyzer
         if (normalizedInput.Contains("postgres") || normalizedInput.Contains("timeout") || normalizedInput.Contains("pricing"))
         {
             return new IncidentAnalysisResponse(
-                Summary: $"{request.ServiceName} is showing {request.Severity.ToLowerInvariant()} database timeout behavior in {request.Environment}.",
-                ProbableCause: "Application requests are likely waiting on PostgreSQL connections or slow price-save queries, causing API calls to exceed timeout limits.",
+                Summary: $"{request.ServiceName} is showing {request.Severity.ToLowerInvariant()} timeout behavior in {request.Environment}.",
+                ProbableCause: "Application requests are likely waiting on a slow or saturated downstream dependency, causing operations to exceed timeout limits.",
                 Confidence: "High",
                 Evidence:
                 [
-                    "Logs include a PostgreSQL timeout exception.",
-                    "User impact is tied to saving price updates, which is a database-backed workflow.",
-                    "The failure mode is consistent with connection pool saturation or a slow query regression."
+                    "Logs include timeout or connection-related exceptions.",
+                    "User impact is tied to a specific workflow, which helps narrow the blast radius.",
+                    "The failure mode is consistent with dependency latency, connection saturation, or a recent regression."
                 ],
                 RecommendedSteps:
                 [
-                    "Check PostgreSQL connection pool usage for the Pricing API.",
-                    "Review slow query logs for price update statements during the incident window.",
+                    "Check connection pool, thread pool, and request queue pressure for the affected service.",
+                    "Review slow dependency calls during the incident window.",
                     "Compare error rate and database latency against the latest deployment time.",
                     "Temporarily increase command timeout only if rollback is not immediately available.",
                     "Prepare rollback if the issue correlates with a recent release."
                 ],
                 RunbookReferences:
                 [
-                    new RunbookReference("Pricing API Database Timeout Runbook", "docs/runbooks/pricing-api-database-timeouts.md", "Database connection saturation and slow query triage"),
+                    new RunbookReference("API Error and Timeout Triage", "docs/runbooks/api-error-and-timeout-triage.md", "Timeout and 5xx investigation guidance"),
+                    new RunbookReference("Dependency and Resource Saturation", "docs/runbooks/dependency-and-resource-saturation.md", "Downstream dependency and saturation triage"),
                     new RunbookReference("Incident Comms Template", "docs/runbooks/incident-communications.md", "Customer and stakeholder update guidance")
                 ],
-                DraftUpdate: $"Investigating {request.Severity.ToLowerInvariant()} errors affecting {request.ServiceName} in {request.Environment}. Current evidence points to PostgreSQL timeout behavior during price-save operations. The team is reviewing connection pool usage, slow queries, and recent deployment timing.",
+                DraftUpdate: $"Investigating {request.Severity.ToLowerInvariant()} errors affecting {request.ServiceName} in {request.Environment}. Current evidence points to timeout behavior in a specific workflow. The team is reviewing dependency latency, resource saturation, and recent deployment timing.",
                 AnalysisProvider: "Mock",
                 Model: "deterministic-rules"
             );
@@ -328,29 +333,30 @@ static class IncidentAnalyzer
         if (normalizedInput.Contains("queue") || normalizedInput.Contains("sqs") || normalizedInput.Contains("inventory") || normalizedInput.Contains("backlog"))
         {
             return new IncidentAnalysisResponse(
-                Summary: $"{request.ServiceName} is experiencing {request.Severity.ToLowerInvariant()} queue backlog symptoms in {request.Environment}.",
-                ProbableCause: "Message processing is likely slower than message ingestion, causing SQS backlog growth and delayed downstream updates.",
+                Summary: $"{request.ServiceName} is experiencing {request.Severity.ToLowerInvariant()} asynchronous processing backlog symptoms in {request.Environment}.",
+                ProbableCause: "Message or job processing is likely slower than ingestion, causing backlog growth and delayed downstream updates.",
                 Confidence: "Medium",
                 Evidence:
                 [
                     "Symptoms mention delayed updates and growing backlog.",
                     "Queue-based systems fail this way when consumers are throttled, unhealthy, or under-scaled.",
-                    "No direct database exception was found, so consumer throughput should be checked first."
+                    "No direct dependency exception was found, so consumer throughput and retry behavior should be checked first."
                 ],
                 RecommendedSteps:
                 [
-                    "Check SQS visible message count and age of oldest message.",
-                    "Review Lambda or worker error rates, throttles, and concurrency limits.",
+                    "Check queue depth, in-flight work, and age of oldest message or job.",
+                    "Review worker error rates, throttles, duration, and concurrency limits.",
                     "Inspect dead-letter queue volume for poison messages.",
                     "Scale consumers or pause producers if backlog continues to grow.",
                     "Replay failed messages after confirming the handler is healthy."
                 ],
                 RunbookReferences:
                 [
-                    new RunbookReference("Inventory Queue Backlog Runbook", "docs/runbooks/inventory-queue-backlog.md", "SQS backlog and consumer throughput triage"),
+                    new RunbookReference("Async Processing Backlog Triage", "docs/runbooks/async-processing-backlog-triage.md", "Queue and worker backlog investigation guidance"),
+                    new RunbookReference("Dependency and Resource Saturation", "docs/runbooks/dependency-and-resource-saturation.md", "Dependency bottleneck and resource pressure triage"),
                     new RunbookReference("Incident Comms Template", "docs/runbooks/incident-communications.md", "Customer and stakeholder update guidance")
                 ],
-                DraftUpdate: $"Investigating {request.Severity.ToLowerInvariant()} processing delays affecting {request.ServiceName} in {request.Environment}. Current evidence suggests queue backlog growth and reduced consumer throughput. The team is checking SQS age, worker errors, throttles, and DLQ volume.",
+                DraftUpdate: $"Investigating {request.Severity.ToLowerInvariant()} processing delays affecting {request.ServiceName} in {request.Environment}. Current evidence suggests backlog growth and reduced consumer throughput. The team is checking queue age, worker errors, throttles, and failed message volume.",
                 AnalysisProvider: "Mock",
                 Model: "deterministic-rules"
             );

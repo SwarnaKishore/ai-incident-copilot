@@ -194,17 +194,17 @@ function App() {
       <section className="mode-guide" aria-label="How to use AI Incident Copilot">
         <div>
           <span className="step-index">01</span>
-          <strong>1. Start with logs</strong>
+          <strong>Start with logs</strong>
           <span>Pick a demo below or paste logs from your service.</span>
         </div>
         <div>
           <span className="step-index">02</span>
-          <strong>2. Choose a mode</strong>
+          <strong>Choose a mode</strong>
           <span>Use Mock for demos. Use Claude when analyzing your own logs.</span>
         </div>
         <div>
           <span className="step-index">03</span>
-          <strong>3. Use the results</strong>
+          <strong>Use the results</strong>
           <span>See likely cause, investigation steps, related guidance, and a status update draft.</span>
         </div>
       </section>

@@ -165,47 +165,56 @@ function App() {
 
   return (
     <main className="app-shell">
-      <section className="workspace-header">
-        <div>
+      <section className="workspace-hero">
+        <div className="workspace-header">
           <p className="eyebrow">AI Incident Copilot</p>
           <h1>Production incident analysis workspace</h1>
           <p className="intro">
             Analyze production symptoms, logs, and runbook context in either free mock mode or Claude-powered mode.
           </p>
         </div>
+
+        <div className="hero-status">
+          <span>Mode</span>
+          <strong>{form.analysisMode === 'claude' ? 'Claude analysis' : 'Mock analysis'}</strong>
+        </div>
       </section>
 
-      <section className="mode-guide" aria-label="Analysis mode guidance">
+      <section className="mode-guide" aria-label="How to use AI Incident Copilot">
         <div>
-          <strong>Mock</strong>
-          <span>Use for free testing, UI demos, and repeatable sample output.</span>
+          <span className="step-index">01</span>
+          <strong>1. Start with logs</strong>
+          <span>Pick a demo below or paste logs from your service.</span>
         </div>
         <div>
-          <strong>Claude</strong>
-          <span>Use for real AI analysis only when the backend owner has configured billing limits.</span>
+          <span className="step-index">02</span>
+          <strong>2. Choose a mode</strong>
+          <span>Use Mock for demos. Use Claude when analyzing your own logs.</span>
         </div>
         <div>
-          <strong>Samples</strong>
-          <span>Load pricing or inventory incidents, then edit any field before analyzing.</span>
+          <span className="step-index">03</span>
+          <strong>3. Use the results</strong>
+          <span>See likely cause, investigation steps, related guidance, and a status update draft.</span>
         </div>
       </section>
 
       <section className="scenario-section" aria-label="Demo scenarios">
         <div className="section-heading">
-          <h2>Demo incidents</h2>
+          <h2>Try a demo</h2>
           <p>Start with a realistic sample or customize the form for your own case.</p>
         </div>
         <div className="scenario-strip">
           {demoScenarios.map((scenario) => (
             <button
               className={selectedScenarioId === scenario.id ? 'scenario-card active' : 'scenario-card'}
-              key={scenario.id}
-              onClick={() => loadScenario(scenario)}
-              type="button"
-            >
-              <span>{scenario.name}</span>
-              <small>{scenario.description}</small>
-            </button>
+            key={scenario.id}
+            onClick={() => loadScenario(scenario)}
+            type="button"
+          >
+            <span className="scenario-dot" aria-hidden="true"></span>
+            <span>{scenario.name}</span>
+            <small>{scenario.description}</small>
+          </button>
           ))}
         </div>
       </section>

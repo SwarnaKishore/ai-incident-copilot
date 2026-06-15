@@ -29,6 +29,12 @@ type IncidentAnalysis = {
   model: string
 }
 
+type ProblemDetails = {
+  title?: string
+  detail?: string
+  status?: number
+}
+
 type DemoScenario = IncidentForm & {
   id: string
   name: string
@@ -76,6 +82,18 @@ ConsumerSuccessRate=71%`,
 
 const initialForm: IncidentForm = demoScenarios[0]
 
+const getErrorMessage = async (response: Response) => {
+  try {
+    const problem = (await response.json()) as ProblemDetails
+    const title = problem.title ?? 'Analysis request failed'
+    const detail = problem.detail ? ` ${problem.detail}` : ''
+
+    return `${title}.${detail}`
+  } catch {
+    return 'Analysis request failed. Please try again or switch to Mock mode.'
+  }
+}
+
 function App() {
   const [form, setForm] = useState<IncidentForm>(initialForm)
   const [selectedScenarioId, setSelectedScenarioId] = useState(demoScenarios[0].id)
@@ -93,6 +111,11 @@ function App() {
       {value.length.toLocaleString()} / {limit.toLocaleString()}
     </span>
   )
+
+  const modeDescription =
+    form.analysisMode === 'claude'
+      ? 'Claude mode uses the backend API key configured by the app owner.'
+      : 'Mock mode is free and returns deterministic sample analysis.'
 
   const loadScenario = (scenario: DemoScenario) => {
     setSelectedScenarioId(scenario.id)
@@ -124,13 +147,17 @@ function App() {
       })
 
       if (!response.ok) {
-        throw new Error('Analysis request failed')
+        throw new Error(await getErrorMessage(response))
       }
 
       const data = (await response.json()) as IncidentAnalysis
       setAnalysis(data)
-    } catch {
-      setError('Unable to analyze the incident. Confirm the .NET API is running on port 5194.')
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to analyze the incident. Confirm the .NET API is running on port 5194.',
+      )
     } finally {
       setIsLoading(false)
     }
@@ -143,27 +170,53 @@ function App() {
           <p className="eyebrow">AI Incident Copilot</p>
           <h1>Production incident analysis workspace</h1>
           <p className="intro">
-            Load a demo incident or paste your own logs to generate a structured investigation plan with runbook references.
+            Analyze production symptoms, logs, and runbook context in either free mock mode or Claude-powered mode.
           </p>
         </div>
       </section>
 
-      <section className="scenario-strip" aria-label="Demo scenarios">
-        {demoScenarios.map((scenario) => (
-          <button
-            className={selectedScenarioId === scenario.id ? 'scenario-card active' : 'scenario-card'}
-            key={scenario.id}
-            onClick={() => loadScenario(scenario)}
-            type="button"
-          >
-            <span>{scenario.name}</span>
-            <small>{scenario.description}</small>
-          </button>
-        ))}
+      <section className="mode-guide" aria-label="Analysis mode guidance">
+        <div>
+          <strong>Mock</strong>
+          <span>Use for free testing, UI demos, and repeatable sample output.</span>
+        </div>
+        <div>
+          <strong>Claude</strong>
+          <span>Use for real AI analysis only when the backend owner has configured billing limits.</span>
+        </div>
+        <div>
+          <strong>Samples</strong>
+          <span>Load pricing or inventory incidents, then edit any field before analyzing.</span>
+        </div>
+      </section>
+
+      <section className="scenario-section" aria-label="Demo scenarios">
+        <div className="section-heading">
+          <h2>Demo incidents</h2>
+          <p>Start with a realistic sample or customize the form for your own case.</p>
+        </div>
+        <div className="scenario-strip">
+          {demoScenarios.map((scenario) => (
+            <button
+              className={selectedScenarioId === scenario.id ? 'scenario-card active' : 'scenario-card'}
+              key={scenario.id}
+              onClick={() => loadScenario(scenario)}
+              type="button"
+            >
+              <span>{scenario.name}</span>
+              <small>{scenario.description}</small>
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="workspace-grid">
         <form className="incident-form" onSubmit={analyzeIncident}>
+          <div className="panel-heading">
+            <h2>Incident input</h2>
+            <p>{modeDescription}</p>
+          </div>
+
           <label>
             <span className="label-row">
               Service name
@@ -251,7 +304,7 @@ function App() {
           {!analysis && (
             <div className="empty-state">
               <h2>Analysis will appear here</h2>
-              <p>Choose a demo scenario, review the inputs, then run the analysis.</p>
+              <p>Select an analysis mode, choose or edit an incident, then run the analysis.</p>
             </div>
           )}
 

@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddSingleton<ClaudeUsageLimiter>();
 builder.Services.AddHttpClient("Anthropic", client =>
 {
     client.BaseAddress = new Uri("https://api.anthropic.com");
@@ -16,8 +17,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
+        var allowedOrigins = builder.Configuration["ALLOWED_ORIGINS"]?
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            ?? ["http://localhost:5173"];
+
         policy
-            .WithOrigins("http://localhost:5173")
+            .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -41,7 +46,8 @@ app.MapGet("/", () => Results.Ok(new
 app.MapPost("/api/incidents/analyze", async (
     IncidentAnalysisRequest request,
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration) =>
+    IConfiguration configuration,
+    ClaudeUsageLimiter usageLimiter) =>
 {
     var validationErrors = IncidentRequestValidator.Validate(request);
 
@@ -52,6 +58,19 @@ app.MapPost("/api/incidents/analyze", async (
 
     if (request.AnalysisMode.Equals("claude", StringComparison.OrdinalIgnoreCase))
     {
+        var dailyLimit = int.TryParse(configuration["CLAUDE_DAILY_LIMIT"], out var configuredLimit)
+            ? configuredLimit
+            : 5;
+        var usageCheck = usageLimiter.TryConsume(dailyLimit);
+
+        if (!usageCheck.IsAllowed)
+        {
+            return Results.Problem(
+                title: "Daily Claude demo limit reached",
+                detail: $"Claude mode is limited to {dailyLimit} requests per day for this demo. Switch to Mock mode to continue testing.",
+                statusCode: StatusCodes.Status429TooManyRequests);
+        }
+
         var apiKey = configuration["ANTHROPIC_API_KEY"];
 
         if (string.IsNullOrWhiteSpace(apiKey))
@@ -87,6 +106,37 @@ app.MapPost("/api/incidents/analyze", async (
 });
 
 app.Run();
+
+sealed class ClaudeUsageLimiter
+{
+    private readonly Lock _lock = new();
+    private DateOnly _usageDate = DateOnly.FromDateTime(DateTime.UtcNow);
+    private int _count;
+
+    public ClaudeUsageResult TryConsume(int dailyLimit)
+    {
+        lock (_lock)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            if (today != _usageDate)
+            {
+                _usageDate = today;
+                _count = 0;
+            }
+
+            if (_count >= dailyLimit)
+            {
+                return new ClaudeUsageResult(false, _count, dailyLimit);
+            }
+
+            _count++;
+            return new ClaudeUsageResult(true, _count, dailyLimit);
+        }
+    }
+}
+
+record ClaudeUsageResult(bool IsAllowed, int Used, int Limit);
 
 static class ClaudeErrorMapper
 {

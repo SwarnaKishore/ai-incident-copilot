@@ -114,18 +114,54 @@ Claude mode requires backend environment variables:
 ```bash
 export ANTHROPIC_API_KEY="your_real_key_here"
 export ANTHROPIC_MODEL="claude-haiku-4-5"
+export ALLOWED_ORIGINS="http://localhost:5173"
+export CLAUDE_DAILY_LIMIT="5"
+```
+
+Frontend API URL:
+
+```bash
+VITE_API_BASE_URL=http://localhost:5194
 ```
 
 Mock mode works without an API key.
+
+## Cost And Safety
+
+- Mock mode is free and does not call Claude.
+- Claude mode must be selected manually.
+- API keys stay in the backend and are never exposed to the React app.
+- Claude mode is limited by `CLAUDE_DAILY_LIMIT`.
+- Input length limits are enforced in both the UI and backend.
+
+## Deployment Notes
+
+Recommended first deployment:
+
+- Backend: Render Web Service
+- Frontend: Vercel static app
+
+Backend environment variables:
+
+```text
+ANTHROPIC_API_KEY=your_real_key_here
+ANTHROPIC_MODEL=claude-haiku-4-5
+ALLOWED_ORIGINS=https://your-vercel-app.vercel.app
+CLAUDE_DAILY_LIMIT=5
+```
+
+Frontend environment variable:
+
+```text
+VITE_API_BASE_URL=https://your-render-api.onrender.com
+```
 
 ## Future Enhancements
 
 - PostgreSQL persistence for saved incidents and analysis history
 - RAG over uploaded runbooks and troubleshooting documents
 - Vector search for runbook retrieval
-- Daily Claude usage limits
 - Playwright end-to-end tests
-- Public deployment with backend-only secret configuration
 - Evaluation cases for known incident scenarios
 
 ## License

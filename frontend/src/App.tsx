@@ -47,6 +47,8 @@ const inputLimits = {
   logs: 4000,
 } as const
 
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5194'
+
 const demoScenarios: DemoScenario[] = [
   {
     id: 'pricing-timeout',
@@ -114,7 +116,7 @@ function App() {
 
   const modeDescription =
     form.analysisMode === 'claude'
-      ? 'Claude mode uses the backend API key configured by the app owner.'
+      ? 'Claude mode uses the backend API key and is limited to 5 demo requests per day.'
       : 'Mock mode is free and returns deterministic sample analysis.'
 
   const loadScenario = (scenario: DemoScenario) => {
@@ -138,7 +140,7 @@ function App() {
     setAnalysis(null)
 
     try {
-      const response = await fetch('http://localhost:5194/api/incidents/analyze', {
+      const response = await fetch(`${apiBaseUrl}/api/incidents/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

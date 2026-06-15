@@ -2,9 +2,8 @@
 
 Production incident? Paste the symptoms and logs. Get an investigation brief.
 
-AI Incident Copilot is a full-stack AI MVP that helps engineers analyze incidents faster. It turns service symptoms, logs, and generic runbook guidance into a structured response with likely cause, evidence, next steps, and a status update draft.
+AI Incident Copilot is a full-stack AI that helps engineers analyze incidents faster. It turns service symptoms, logs, and generic runbook guidance into a structured response that includes a likely cause, evidence, next steps, and a draft status update.
 
-- No AI cost needed for demos — use Mock mode
 - Real Claude analysis available from the .NET backend
 - Works with logs from your service, not one specific system
 - Built with cost guardrails and backend-only API key handling

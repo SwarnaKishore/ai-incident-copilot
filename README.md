@@ -1,12 +1,20 @@
 # AI Incident Copilot
 
-Production incident? Paste the symptoms and logs. Get an investigation brief.
+AI Incident Copilot helps teams turn incident symptoms and service logs into a clear investigation brief.
 
-AI Incident Copilot is a full-stack AI that helps engineers analyze incidents faster. It turns service symptoms, logs, and generic runbook guidance into a structured response that includes a likely cause, evidence, next steps, and a draft status update.
+The app supports a free mock mode for demos and a Claude-powered mode for real AI analysis. It is designed for production support scenarios where engineers need a quick starting point: likely cause, evidence from logs, next investigation steps, related guidance, and a draft status update.
 
-- Real Claude analysis available from the .NET backend
-- Works with logs from your service, not one specific system
-- Built with cost guardrails and backend-only API key handling
+- Works with logs from your service
+- Keeps the Claude API key on the backend
+- Includes input limits and daily Claude usage controls
+- Deployed as a live full-stack MVP
+
+## Live Demo
+
+- Frontend demo: [https://ai-incident-copilot.vercel.app/](https://ai-incident-copilot.vercel.app/)
+- Backend health check: [https://ai-incident-copilot-api.onrender.com/](https://ai-incident-copilot-api.onrender.com/)
+
+Note: The backend is hosted on Render's free tier, so the first request may take a short moment if the service has been inactive.
 
 ## Screenshots
 
@@ -20,10 +28,10 @@ AI Incident Copilot is a full-stack AI that helps engineers analyze incidents fa
 
 ## Quick Demo
 
-1. Pick a demo incident or paste logs from your service.
-2. Choose Mock mode for a free demo or Claude mode for real AI analysis.
+1. Pick a sample incident or paste logs from your service.
+2. Choose Mock mode for free testing or Claude mode for real AI analysis.
 3. Click Analyze incident.
-4. Review the generated investigation brief.
+4. Review the likely cause, evidence, next steps, and draft update.
 
 ## Example Input
 
@@ -42,7 +50,7 @@ ConnectionPool: Active=98 Idle=0 Waiting=42 Max=100
 
 ## Example Output
 
-The app returns a structured response:
+The app returns a readable incident brief:
 
 - Summary
 - Probable cause
@@ -54,26 +62,33 @@ The app returns a structured response:
 
 ## Features
 
-- React incident intake workspace
-- .NET 10 Minimal API backend
-- Claude Haiku integration through Anthropic Messages API
-- Mock mode for repeatable demos
-- Generic runbook guidance for API errors, timeouts, async backlogs, and resource saturation
+- Incident input form for service name, environment, severity, symptoms, and logs
+- Mock mode for free repeatable demos
+- Claude mode for real AI analysis
+- Backend-only API key handling
+- Daily Claude usage limit for cost control
+- Friendly error messages when Claude is unavailable or usage limits are reached
+- Generic runbook-style guidance for common production issues
 
-## Architecture
+## How It Works
 
 ```text
-React + TypeScript UI
+User enters symptoms and logs
         |
         v
-.NET 10 Minimal API
+Backend builds a structured incident prompt
         |
-        +--> Mock rule-based analyzer
+        +--> Adds generic runbook guidance
         |
-        +--> Claude API analyzer
+        +--> Adds the Incident Communications Template
         |
-        +--> Generic runbook context
+        +--> Uses Mock mode or Claude mode
+        |
+        v
+App displays a consistent investigation brief
 ```
+
+Instead of sending raw logs directly to Claude, the backend shapes the request with incident-specific instructions and runbook context. This helps produce a more consistent response with likely cause, evidence, next steps, related guidance, and a stakeholder-ready update draft.
 
 Project layout:
 
@@ -85,7 +100,7 @@ ai-incident-copilot/
   samples/incidents/             Sample incident payloads
 ```
 
-## Tech Stack
+## Built With
 
 - Frontend: React, TypeScript, Vite
 - Backend: .NET 10 Minimal API
@@ -136,24 +151,24 @@ Mock mode works without an API key.
 
 ## Deployment Notes
 
-Recommended first deployment:
-
-- Backend: Render Web Service
-- Frontend: Vercel static app
+- Frontend is deployed on Vercel.
+- Backend is deployed on Render.
+- Claude API keys are stored only as backend environment variables.
+- The frontend calls the backend through `VITE_API_BASE_URL`.
 
 Backend environment variables:
 
 ```text
 ANTHROPIC_API_KEY=your_real_key_here
 ANTHROPIC_MODEL=claude-haiku-4-5
-ALLOWED_ORIGINS=https://your-vercel-app.vercel.app
+ALLOWED_ORIGINS=http://localhost:5173,https://ai-incident-copilot.vercel.app
 CLAUDE_DAILY_LIMIT=5
 ```
 
 Frontend environment variable:
 
 ```text
-VITE_API_BASE_URL=https://your-render-api.onrender.com
+VITE_API_BASE_URL=https://ai-incident-copilot-api.onrender.com
 ```
 
 ## Future Enhancements

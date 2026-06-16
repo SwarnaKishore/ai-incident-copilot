@@ -4,11 +4,6 @@ AI Incident Copilot helps teams turn incident symptoms and service logs into a c
 
 The app supports a free mock mode for demos and a Claude-powered mode for real AI analysis. It is designed for production support scenarios where engineers need a quick starting point: likely cause, evidence from logs, next investigation steps, related guidance, and a draft status update.
 
-- Works with logs from your service
-- Keeps the Claude API key on the backend
-- Includes input limits and daily Claude usage controls
-- Deployed as a live full-stack MVP
-
 ## Live Demo
 
 - Frontend demo: [https://ai-incident-copilot.vercel.app/](https://ai-incident-copilot.vercel.app/)

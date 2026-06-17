@@ -176,11 +176,11 @@ VITE_API_BASE_URL=https://ai-incident-copilot-api.onrender.com
 
 ## Future Enhancements
 
-- PostgreSQL persistence for saved incidents and analysis history
-- RAG over uploaded runbooks and troubleshooting documents
-- Vector search for runbook retrieval
-- Playwright end-to-end tests
-- Evaluation cases for known incident scenarios
+- Save incident history and analysis results with PostgreSQL
+- Upload custom runbooks and troubleshooting documents
+- Add vector search for more advanced runbook retrieval
+- Add Playwright end-to-end tests
+- Add evaluation cases for known incident scenarios
 
 ## License
 

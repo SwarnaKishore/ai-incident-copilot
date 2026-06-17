@@ -65,7 +65,7 @@ The app returns a readable incident brief:
 - Incident input form for service name, environment, severity, symptoms, and logs
 - Mock mode for free repeatable demos
 - Claude mode for real AI analysis
-- Local RAG retrieval
+- Local RAG retrieval with visible retrieved guidance in the UI
 - Backend-only API key handling
 - Daily Claude usage limit for cost control
 - Friendly error messages when Claude is unavailable or usage limits are reached

@@ -13,13 +13,15 @@ record IncidentAnalysisResponse(
     string Confidence,
     string[] Evidence,
     string[] RecommendedSteps,
-    RunbookReference[] RunbookReferences,
     string DraftUpdate,
     string AnalysisProvider = "Claude",
     string Model = "claude-haiku-4-5"
-);
+)
+{
+    public RetrievedRunbookReference[] RetrievedRunbooks { get; init; } = [];
+}
 
-record RunbookReference(
+record RetrievedRunbookReference(
     string Title,
     string Path,
     string Reason

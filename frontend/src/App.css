@@ -464,6 +464,19 @@ article h3 {
   font-size: 16px;
 }
 
+.article-heading {
+  margin-bottom: 10px;
+}
+
+.article-heading h3 {
+  margin-bottom: 4px;
+}
+
+.article-heading p {
+  color: #64748b;
+  font-size: 13px;
+}
+
 article p {
   margin: 0;
   color: #4b5563;
@@ -492,6 +505,15 @@ li + li {
   padding: 12px;
 }
 
+.retrieved-list {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.retrieved-item {
+  border-color: #b7ded8;
+  background: #f0fdfa;
+}
+
 .reference-item strong,
 .reference-item code,
 .reference-item p {
@@ -509,6 +531,11 @@ li + li {
   margin: 7px 0;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+.reference-item p {
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 @media (max-width: 980px) {

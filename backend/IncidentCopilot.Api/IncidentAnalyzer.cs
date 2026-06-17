@@ -3,6 +3,7 @@ static class IncidentAnalyzer
     public static IncidentAnalysisResponse Analyze(IncidentAnalysisRequest request)
     {
         var normalizedInput = $"{request.ServiceName} {request.Symptoms} {request.Logs}".ToLowerInvariant();
+        var retrievedRunbooks = RunbookRetriever.Retrieve(request);
 
         if (normalizedInput.Contains("postgres") || normalizedInput.Contains("timeout") || normalizedInput.Contains("pricing"))
         {
@@ -24,16 +25,10 @@ static class IncidentAnalyzer
                     "Temporarily increase command timeout only if rollback is not immediately available.",
                     "Prepare rollback if the issue correlates with a recent release."
                 ],
-                RunbookReferences:
-                [
-                    new RunbookReference("API Error and Timeout Triage", "docs/runbooks/api-error-and-timeout-triage.md", "Timeout and 5xx investigation guidance"),
-                    new RunbookReference("Dependency and Resource Saturation", "docs/runbooks/dependency-and-resource-saturation.md", "Downstream dependency and saturation triage"),
-                    new RunbookReference("Incident Comms Template", "docs/runbooks/incident-communications.md", "Customer and stakeholder update guidance")
-                ],
                 DraftUpdate: $"Investigating {request.Severity.ToLowerInvariant()} errors affecting {request.ServiceName} in {request.Environment}. Current evidence points to timeout behavior in a specific workflow. The team is reviewing dependency latency, resource saturation, and recent deployment timing.",
                 AnalysisProvider: "Mock",
                 Model: "deterministic-rules"
-            );
+            ) with { RetrievedRunbooks = ToReferences(retrievedRunbooks) };
         }
 
         if (normalizedInput.Contains("queue") || normalizedInput.Contains("sqs") || normalizedInput.Contains("inventory") || normalizedInput.Contains("backlog"))
@@ -56,16 +51,10 @@ static class IncidentAnalyzer
                     "Scale consumers or pause producers if backlog continues to grow.",
                     "Replay failed messages after confirming the handler is healthy."
                 ],
-                RunbookReferences:
-                [
-                    new RunbookReference("Async Processing Backlog Triage", "docs/runbooks/async-processing-backlog-triage.md", "Queue and worker backlog investigation guidance"),
-                    new RunbookReference("Dependency and Resource Saturation", "docs/runbooks/dependency-and-resource-saturation.md", "Dependency bottleneck and resource pressure triage"),
-                    new RunbookReference("Incident Comms Template", "docs/runbooks/incident-communications.md", "Customer and stakeholder update guidance")
-                ],
                 DraftUpdate: $"Investigating {request.Severity.ToLowerInvariant()} processing delays affecting {request.ServiceName} in {request.Environment}. Current evidence suggests backlog growth and reduced consumer throughput. The team is checking queue age, worker errors, throttles, and failed message volume.",
                 AnalysisProvider: "Mock",
                 Model: "deterministic-rules"
-            );
+            ) with { RetrievedRunbooks = ToReferences(retrievedRunbooks) };
         }
 
         return new IncidentAnalysisResponse(
@@ -86,13 +75,16 @@ static class IncidentAnalyzer
                 "Validate retry, timeout, and circuit breaker settings.",
                 "Prepare a rollback plan if errors correlate with a recent release."
             ],
-            RunbookReferences:
-            [
-                new RunbookReference("Incident Comms Template", "docs/runbooks/incident-communications.md", "General incident update guidance")
-            ],
             DraftUpdate: $"Investigating {request.Severity.ToLowerInvariant()} incident affecting {request.ServiceName} in {request.Environment}. Initial analysis suggests dependency latency or timeout behavior. Next update will follow after log and metrics review.",
             AnalysisProvider: "Mock",
             Model: "deterministic-rules"
-        );
+        ) with { RetrievedRunbooks = ToReferences(retrievedRunbooks) };
+    }
+
+    private static RetrievedRunbookReference[] ToReferences(RetrievedRunbook[] runbooks)
+    {
+        return runbooks
+            .Select(runbook => new RetrievedRunbookReference(runbook.Title, runbook.Path, runbook.Reason))
+            .ToArray();
     }
 }

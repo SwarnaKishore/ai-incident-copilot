@@ -13,6 +13,7 @@ static class ClaudeIncidentAnalyzer
         string apiKey,
         string model)
     {
+        var retrievedRunbooks = RunbookRetriever.Retrieve(request);
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/v1/messages");
         httpRequest.Headers.Add("x-api-key", apiKey);
         httpRequest.Headers.Add("anthropic-version", "2023-06-01");
@@ -32,7 +33,6 @@ static class ClaudeIncidentAnalyzer
                   "confidence": "Low | Medium | High",
                   "evidence": ["string"],
                   "recommendedSteps": ["string"],
-                  "runbookReferences": [{"title":"string","path":"string","reason":"string"}],
                   "draftUpdate": "string"
                 }
                 Be specific, operational, and honest about uncertainty. Do not invent tools or metrics that are not implied by the input.
@@ -42,7 +42,7 @@ static class ClaudeIncidentAnalyzer
                 new
                 {
                     role = "user",
-                    content = BuildPrompt(request)
+                    content = BuildPrompt(request, retrievedRunbooks)
                 }
             }
         };
@@ -66,12 +66,16 @@ static class ClaudeIncidentAnalyzer
 
         return analysis is null
             ? throw new InvalidOperationException("Claude returned an empty analysis payload.")
-            : analysis with { AnalysisProvider = "Claude + RAG", Model = model };
+            : analysis with
+            {
+                AnalysisProvider = "Claude + RAG",
+                Model = model,
+                RetrievedRunbooks = ToReferences(retrievedRunbooks)
+            };
     }
 
-    private static string BuildPrompt(IncidentAnalysisRequest request)
+    private static string BuildPrompt(IncidentAnalysisRequest request, RetrievedRunbook[] retrievedRunbooks)
     {
-        var retrievedRunbooks = RunbookRetriever.Retrieve(request);
         var runbookContext = string.Join(
             "\n\n",
             retrievedRunbooks.Select((runbook, index) => $$"""
@@ -99,8 +103,7 @@ static class ClaudeIncidentAnalyzer
 
             Instructions:
             - Use the retrieved runbook context when it matches the incident evidence.
-            - In runbookReferences, include only runbooks that materially influenced the answer.
-            - Explain why each runbook matched the submitted symptoms or logs.
+            - Do not return runbook reference fields; the backend returns retrieved guidance separately.
             - Use the Incident Communications Template to write draftUpdate in a stakeholder-ready style.
             """;
     }
@@ -126,5 +129,12 @@ static class ClaudeIncidentAnalyzer
         }
 
         return text[start..(end + 1)];
+    }
+
+    private static RetrievedRunbookReference[] ToReferences(RetrievedRunbook[] runbooks)
+    {
+        return runbooks
+            .Select(runbook => new RetrievedRunbookReference(runbook.Title, runbook.Path, runbook.Reason))
+            .ToArray();
     }
 }

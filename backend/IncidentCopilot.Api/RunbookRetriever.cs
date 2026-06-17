@@ -2,7 +2,8 @@ using System.Text.RegularExpressions;
 
 static class RunbookRetriever
 {
-    private const int MaxRunbooks = 3;
+    private const int MaxRelevantRunbooks = 2;
+    private const int MinimumRelevantScore = 2;
     private const int MaxSnippetLength = 1400;
     private static readonly Regex TokenRegex = new("[a-z0-9]{3,}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly string[] StopWords =
@@ -19,9 +20,11 @@ static class RunbookRetriever
 
         var rankedRunbooks = runbooks
             .Select(runbook => Score(runbook, queryTerms))
-            .Where(result => result.Score > 0 || result.Path.Contains("incident-communications", StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(result => result.Path.Contains("incident-communications", StringComparison.OrdinalIgnoreCase) ? -1 : result.Score)
-            .Take(MaxRunbooks - 1)
+            .Where(result =>
+                !result.Path.Contains("incident-communications", StringComparison.OrdinalIgnoreCase) &&
+                result.Score >= MinimumRelevantScore)
+            .OrderByDescending(result => result.Score)
+            .Take(MaxRelevantRunbooks)
             .ToList();
 
         var communicationsRunbook = runbooks.FirstOrDefault(
@@ -32,7 +35,7 @@ static class RunbookRetriever
             rankedRunbooks.Add(new RetrievedRunbook(
                 communicationsRunbook.Title,
                 communicationsRunbook.Path,
-                "Always included to format the stakeholder update draft.",
+                "Used to shape the draft incident update with impact, suspected cause, mitigation, and next-update wording.",
                 TrimSnippet(communicationsRunbook.Content),
                 0));
         }
@@ -48,17 +51,14 @@ static class RunbookRetriever
             .Take(8)
             .ToArray();
 
-        var score = matchedTerms.Length;
-        var reason = matchedTerms.Length == 0
-            ? "Included as general incident guidance."
-            : $"Matched terms: {string.Join(", ", matchedTerms)}.";
+        var reason = BuildReason(runbook.Title, matchedTerms);
 
         return new RetrievedRunbook(
             runbook.Title,
             runbook.Path,
             reason,
             TrimSnippet(runbook.Content),
-            score);
+            matchedTerms.Length);
     }
 
     private static RunbookDocument[] LoadRunbooks()
@@ -112,6 +112,54 @@ static class RunbookRetriever
             .Matches(value.ToLowerInvariant())
             .Select(match => match.Value)
             .Where(token => !stopWords.Contains(token));
+    }
+
+    private static string BuildReason(string title, string[] matchedTerms)
+    {
+        if (matchedTerms.Length == 0)
+        {
+            return "Used as general incident guidance for the generated response.";
+        }
+
+        var readableTerms = matchedTerms
+            .Select(FormatTerm)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(5);
+        var focus = GetGuidanceFocus(title);
+
+        return $"Selected because the incident mentions {string.Join(", ", readableTerms)}. {focus}";
+    }
+
+    private static string GetGuidanceFocus(string title)
+    {
+        if (title.Contains("API Error", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Use this to review error rates, latency, timeout settings, retries, and dependency health.";
+        }
+
+        if (title.Contains("Async", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Use this to review queue depth, consumer throughput, dead-letter volume, throttling, and replay decisions.";
+        }
+
+        if (title.Contains("Dependency", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Use this to review connection pools, resource saturation, dependency latency, and deployment correlation.";
+        }
+
+        return "Use this guidance to keep the investigation focused and repeatable.";
+    }
+
+    private static string FormatTerm(string term)
+    {
+        return term switch
+        {
+            "connectionpool" => "connection pool",
+            "postgresql" => "PostgreSQL",
+            "sqs" => "SQS",
+            "dlq" => "DLQ",
+            _ => term
+        };
     }
 
     private static string TrimSnippet(string content)

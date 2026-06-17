@@ -11,7 +11,7 @@ type IncidentForm = {
   analysisMode: 'mock' | 'claude'
 }
 
-type RunbookReference = {
+type RetrievedGuidance = {
   title: string
   path: string
   reason: string
@@ -23,7 +23,7 @@ type IncidentAnalysis = {
   confidence: string
   evidence: string[]
   recommendedSteps: string[]
-  runbookReferences: RunbookReference[]
+  retrievedRunbooks?: RetrievedGuidance[]
   draftUpdate: string
   analysisProvider: string
   model: string
@@ -376,12 +376,15 @@ function App() {
                 </ol>
               </article>
 
-              {analysis.runbookReferences?.length > 0 && (
+              {analysis.retrievedRunbooks && analysis.retrievedRunbooks.length > 0 && (
                 <article>
-                  <h3>Runbook references</h3>
-                  <div className="reference-list">
-                    {analysis.runbookReferences.map((reference) => (
-                      <div className="reference-item" key={reference.path}>
+                  <div className="article-heading">
+                    <h3>Retrieved guidance</h3>
+                    <p>RAG-selected runbook guidance used by the backend before generating the incident brief.</p>
+                  </div>
+                  <div className="reference-list retrieved-list">
+                    {analysis.retrievedRunbooks.map((reference) => (
+                      <div className="reference-item retrieved-item" key={reference.path}>
                         <strong>{reference.title}</strong>
                         <code>{reference.path}</code>
                         <p>{reference.reason}</p>

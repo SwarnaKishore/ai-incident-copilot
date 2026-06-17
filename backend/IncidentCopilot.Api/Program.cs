@@ -283,13 +283,26 @@ static class ClaudeIncidentAnalyzer
         var jsonText = ExtractJsonObject(claudeText);
         var analysis = JsonSerializer.Deserialize<IncidentAnalysisResponse>(jsonText, JsonOptions);
 
-        return analysis ?? throw new InvalidOperationException("Claude returned an empty analysis payload.");
+        return analysis is null
+            ? throw new InvalidOperationException("Claude returned an empty analysis payload.")
+            : analysis with { AnalysisProvider = "Claude + RAG", Model = model };
     }
 
     private static string BuildPrompt(IncidentAnalysisRequest request)
     {
+        var retrievedRunbooks = RunbookRetriever.Retrieve(request);
+        var runbookContext = string.Join(
+            "\n\n",
+            retrievedRunbooks.Select((runbook, index) => $$"""
+                {{index + 1}}. {{runbook.Title}}
+                   Path: {{runbook.Path}}
+                   Why retrieved: {{runbook.Reason}}
+                   Content:
+                   {{runbook.Content}}
+                """));
+
         return $$"""
-            Analyze this production incident and use the available runbook context when relevant.
+            Analyze this production incident using the retrieved runbook context.
 
             Incident:
             Service: {{request.ServiceName}}
@@ -300,21 +313,14 @@ static class ClaudeIncidentAnalyzer
             Logs:
             {{request.Logs}}
 
-            Available runbook context:
-            1. docs/runbooks/api-error-and-timeout-triage.md
-               Signals: elevated 5xx errors, request timeouts, retry storms, connection pool exhaustion, slow downstream responses.
-               Triage: check error rate, latency percentiles, endpoint concentration, recent deployments, dependency health, timeout and retry settings.
+            Retrieved runbook context:
+            {{runbookContext}}
 
-            2. docs/runbooks/async-processing-backlog-triage.md
-               Signals: queue depth growth, delayed downstream updates, consumer failures, worker throttling, dead-letter volume, message age increase.
-               Triage: check producer volume, consumer throughput, retry failures, poison messages, worker scaling, dependency bottlenecks.
-
-            3. docs/runbooks/dependency-and-resource-saturation.md
-               Signals: database/API/cache/storage latency, connection waits, thread pool pressure, CPU/memory saturation, lock contention.
-               Triage: correlate resource metrics, dependency latency, slow operations, saturation points, deployment timing, and blast radius.
-
-            4. docs/runbooks/incident-communications.md
-               Guidance: create concise stakeholder updates with current impact, suspected cause, mitigation steps, and next update timing.
+            Instructions:
+            - Use the retrieved runbook context when it matches the incident evidence.
+            - In runbookReferences, include only runbooks that materially influenced the answer.
+            - Explain why each runbook matched the submitted symptoms or logs.
+            - Use the Incident Communications Template to write draftUpdate in a stakeholder-ready style.
             """;
     }
 

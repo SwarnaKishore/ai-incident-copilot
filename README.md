@@ -4,6 +4,11 @@ AI Incident Copilot helps teams turn incident symptoms and service logs into a c
 
 The app supports a free mock mode for demos and a Claude-powered mode for real AI analysis. It is designed for production support scenarios where engineers need a quick starting point: likely cause, evidence from logs, next investigation steps, related guidance, and a draft status update.
 
+- Works with logs from your service
+- Uses local RAG to retrieve relevant runbook guidance before calling Claude
+- Keeps the Claude API key on the backend
+- Includes input limits and daily Claude usage controls
+
 ## Live Demo
 
 - Frontend demo: [https://ai-incident-copilot.vercel.app/](https://ai-incident-copilot.vercel.app/)
@@ -60,6 +65,7 @@ The app returns a readable incident brief:
 - Incident input form for service name, environment, severity, symptoms, and logs
 - Mock mode for free repeatable demos
 - Claude mode for real AI analysis
+- Local RAG retrieval
 - Backend-only API key handling
 - Daily Claude usage limit for cost control
 - Friendly error messages when Claude is unavailable or usage limits are reached
@@ -73,7 +79,7 @@ User enters symptoms and logs
         v
 Backend builds a structured incident prompt
         |
-        +--> Adds generic runbook guidance
+        +--> Retrieves the most relevant runbook snippets
         |
         +--> Adds the Incident Communications Template
         |
@@ -83,7 +89,7 @@ Backend builds a structured incident prompt
 App displays a consistent investigation brief
 ```
 
-Instead of sending raw logs directly to Claude, the backend shapes the request with incident-specific instructions and runbook context. This helps produce a more consistent response with likely cause, evidence, next steps, related guidance, and a stakeholder-ready update draft.
+Instead of sending raw logs directly to Claude, the backend first retrieves relevant Markdown runbook guidance using the incident symptoms and logs. It then builds a structured prompt with the retrieved runbook snippets and the Incident Communications Template. This helps produce a more consistent response with likely cause, evidence, next steps, related guidance, and a stakeholder-ready update draft.
 
 Project layout:
 
@@ -91,7 +97,9 @@ Project layout:
 ai-incident-copilot/
   backend/IncidentCopilot.Api/   .NET API and Claude integration
   frontend/                      React + TypeScript UI
-  docs/runbooks/                 Generic incident triage guidance
+  docs/runbooks/                 Human-readable runbook source files
+  backend/IncidentCopilot.Api/Runbooks/
+                                  Packaged runbooks used by the API RAG retriever
   samples/incidents/             Sample incident payloads
 ```
 
@@ -100,7 +108,7 @@ ai-incident-copilot/
 - Frontend: React, TypeScript, Vite
 - Backend: .NET 10 Minimal API
 - AI: Claude Haiku via Anthropic API
-- Runbooks: Markdown-based generic triage guidance
+- RAG: Local keyword retrieval over Markdown runbooks
 
 ## Running Locally
 

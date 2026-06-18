@@ -109,6 +109,27 @@ DLQ messages increased from 12 to 438 in 15 minutes
 ConsumerSuccessRate=71%`,
     companyRunbookNotes: '',
   },
+  {
+    id: 'checkout-promo-failure',
+    name: 'Checkout promo failure',
+    description: 'Feature flag regression after release',
+    serviceName: 'Checkout API',
+    environment: 'Production',
+    severity: 'High',
+    analysisMode: 'mock',
+    symptoms: 'Customers are seeing intermittent checkout failures when applying promotional discounts. The issue started after the latest checkout release and appears limited to orders using promo codes.',
+    logs: `2026-06-18T14:22:11Z ERR Checkout.Api.OrderController SubmitOrder failed
+System.InvalidOperationException: Promotion validation failed after pricing response
+FeatureFlag=promo-discount-v2 Enabled=true
+ReleaseVersion=checkout-api-2026.06.18.3
+ErrorRate=12%
+TraceId=checkout-prd-91af`,
+    companyRunbookNotes: `Checkout service owner: Payments Platform team.
+Feature flags are managed in LaunchDarkly.
+For promo-related checkout failures, disable promo-discount-v2 before rolling back the full checkout service.
+Monitor checkout_success_rate, payment_authorization_rate, and order_creation_latency for 15 minutes after mitigation.
+Escalate to the Pricing team if promotion validation errors continue after the flag is disabled.`,
+  },
 ]
 
 const initialForm: IncidentForm = demoScenarios[0]

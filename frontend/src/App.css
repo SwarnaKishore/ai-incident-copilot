@@ -156,7 +156,7 @@
 
 .scenario-section {
   display: grid;
-  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  grid-template-columns: minmax(200px, 270px) minmax(0, 1fr);
   gap: 24px;
   align-items: center;
   border-bottom: 1px solid #e2e8f0;
@@ -199,7 +199,8 @@
   column-gap: 10px;
   row-gap: 2px;
   align-items: center;
-  width: min(100%, 330px);
+  flex: 1 1 220px;
+  max-width: 280px;
   min-height: 64px;
   box-sizing: border-box;
   border: 1px solid #cfd8e3;
@@ -692,6 +693,7 @@ li + li {
 
   .scenario-card {
     width: 100%;
+    max-width: none;
     border-radius: 8px;
   }
 

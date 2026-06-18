@@ -11,28 +11,124 @@ TOKEN_PATTERN = re.compile(r"[a-z0-9]{3,}", re.IGNORECASE)
 STOP_WORDS = {
     "the",
     "and",
+    "are",
+    "was",
+    "were",
+    "been",
+    "being",
     "for",
     "with",
     "this",
     "that",
     "from",
+    "after",
+    "before",
+    "during",
     "while",
     "when",
     "into",
+    "than",
     "your",
+    "using",
+    "users",
+    "seeing",
+    "appears",
+    "latest",
+    "disable",
+    "compare",
+    "impact",
+    "back",
+    "against",
+    "sessions",
+    "non",
+    "high",
+    "critical",
+    "medium",
+    "low",
     "service",
     "services",
     "logs",
     "error",
     "errors",
+    "failed",
+    "failure",
+    "failures",
+    "promotion",
+    "promotional",
     "issue",
     "incident",
     "production",
 }
 
+RUNBOOK_SIGNAL_TERMS = {
+    "api-error-and-timeout-triage": {
+        "5xx",
+        "api",
+        "exception",
+        "http",
+        "latency",
+        "operation",
+        "request",
+        "retry",
+        "rate",
+        "timeout",
+        "workflow",
+    },
+    "async-processing-backlog-triage": {
+        "backlog",
+        "consumer",
+        "dead",
+        "dlq",
+        "lambda",
+        "message",
+        "queue",
+        "sqs",
+        "throttling",
+        "worker",
+    },
+    "database-incident-triage": {
+        "blocking",
+        "connection",
+        "database",
+        "deadlock",
+        "failover",
+        "iops",
+        "lock",
+        "postgresql",
+        "query",
+        "replica",
+        "replication",
+    },
+    "dependency-and-resource-saturation": {
+        "connection",
+        "cpu",
+        "dependency",
+        "disk",
+        "memory",
+        "pool",
+        "rate",
+        "resource",
+        "saturation",
+        "throttle",
+    },
+    "deployment-and-release-rollback": {
+        "canary",
+        "commit",
+        "config",
+        "deploy",
+        "deployment",
+        "feature",
+        "flag",
+        "release",
+        "rollback",
+        "rollout",
+        "version",
+    },
+}
+
 
 def retrieve_runbooks(request: IncidentAnalysisRequest) -> list[RetrievedRunbook]:
-    query = f"{request.serviceName} {request.environment} {request.severity} {request.symptoms} {request.logs}"
+    query = f"{request.serviceName} {request.symptoms} {request.logs} {request.companyRunbookNotes}"
     query_terms = set(tokenize(query))
     runbooks = load_runbooks()
 
@@ -64,6 +160,17 @@ def retrieve_runbooks(request: IncidentAnalysisRequest) -> list[RetrievedRunbook
             )
         )
 
+    if request.companyRunbookNotes.strip():
+        selected.append(
+            RetrievedRunbook(
+                title="Company runbook notes",
+                path="company-runbook-notes",
+                reason="Included because company-specific runbook notes were provided with this incident.",
+                content=trim_snippet(request.companyRunbookNotes.strip()),
+                score=0,
+            )
+        )
+
     return selected
 
 
@@ -80,14 +187,22 @@ def load_runbooks() -> list[tuple[str, str, str]]:
 
 def score_runbook(title: str, path: str, content: str, query_terms: set[str]) -> RetrievedRunbook:
     runbook_terms = set(tokenize(f"{title} {content}"))
-    matched_terms = [term for term in query_terms if term in runbook_terms][:8]
+    matched_terms = sorted(term for term in query_terms if term in runbook_terms)
+    score = len(matched_terms)
+
+    signal_terms = RUNBOOK_SIGNAL_TERMS.get(Path(path).stem, set())
+    signal_matches = [term for term in matched_terms if term in signal_terms]
+    score += len(signal_matches) * 3
+
+    if Path(path).stem == "deployment-and-release-rollback" and {"feature", "flag", "release"} & query_terms:
+        score += 4
 
     return RetrievedRunbook(
         title=title,
         path=path,
-        reason=build_reason(title, matched_terms),
+        reason=build_reason(title, signal_matches or matched_terms),
         content=trim_snippet(content),
-        score=len(matched_terms),
+        score=score,
     )
 
 
@@ -100,11 +215,28 @@ def extract_title(content: str) -> str:
 
 
 def tokenize(value: str) -> list[str]:
-    return [
-        match.group(0).lower()
-        for match in TOKEN_PATTERN.finditer(value)
-        if match.group(0).lower() not in STOP_WORDS
-    ]
+    normalized = normalize_text(value)
+    tokens: list[str] = []
+
+    for match in TOKEN_PATTERN.finditer(normalized):
+        token = match.group(0).lower()
+
+        if token in STOP_WORDS:
+            continue
+
+        tokens.append(token)
+
+        if token.endswith("s") and len(token) > 4:
+            tokens.append(token[:-1])
+
+    return tokens
+
+
+def normalize_text(value: str) -> str:
+    normalized = re.sub(r"([a-z])([A-Z])", r"\1 \2", value)
+    normalized = re.sub(r"feature\s*flag", "feature flag", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r"release\s*version", "release version", normalized, flags=re.IGNORECASE)
+    return normalized
 
 
 def build_reason(title: str, matched_terms: list[str]) -> str:

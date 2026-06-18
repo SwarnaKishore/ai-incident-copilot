@@ -8,6 +8,7 @@ type IncidentForm = {
   severity: string
   symptoms: string
   logs: string
+  companyRunbookNotes: string
   analysisMode: 'mock' | 'claude'
 }
 
@@ -40,8 +41,14 @@ type StakeholderAudience = keyof StakeholderUpdates
 
 type ProblemDetails = {
   title?: string
-  detail?: string
+  detail?: string | ApiValidationError[]
   status?: number
+}
+
+type ApiValidationError = {
+  loc?: Array<string | number>
+  msg?: string
+  type?: string
 }
 
 type DemoScenario = IncidentForm & {
@@ -54,7 +61,18 @@ const inputLimits = {
   serviceName: 80,
   symptoms: 1000,
   logs: 4000,
+  companyRunbookNotes: 3000,
 } as const
+
+const fieldLabels: Partial<Record<keyof IncidentForm, string>> = {
+  serviceName: 'Service name',
+  environment: 'Environment',
+  severity: 'Severity',
+  symptoms: 'Symptoms',
+  logs: 'Logs',
+  analysisMode: 'Analysis mode',
+  companyRunbookNotes: 'Company runbook notes',
+}
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
@@ -73,6 +91,7 @@ System.TimeoutException: Timeout while connecting to PostgreSQL
 Npgsql.NpgsqlException: Exception while reading from stream
 ConnectionPool: Active=98 Idle=0 Waiting=42 Max=100
 TraceId=prd-price-7f21`,
+    companyRunbookNotes: '',
   },
   {
     id: 'inventory-backlog',
@@ -88,6 +107,7 @@ Queue=inventory-events VisibleMessages=18432 AgeOfOldestMessage=00:27:14
 AWS.Lambda.ThrottlingException: Rate exceeded
 DLQ messages increased from 12 to 438 in 15 minutes
 ConsumerSuccessRate=71%`,
+    companyRunbookNotes: '',
   },
 ]
 
@@ -97,12 +117,47 @@ const getErrorMessage = async (response: Response) => {
   try {
     const problem = (await response.json()) as ProblemDetails
     const title = problem.title ?? 'Analysis request failed'
+
+    if (Array.isArray(problem.detail)) {
+      const messages = problem.detail.map(formatValidationError).join(' ')
+
+      return messages ? `Please check the form. ${messages}` : `${title}. Please check the required fields.`
+    }
+
     const detail = problem.detail ? ` ${problem.detail}` : ''
 
     return `${title}.${detail}`
   } catch {
     return 'Analysis request failed. Please try again or switch to Mock mode.'
   }
+}
+
+const formatValidationError = (error: ApiValidationError) => {
+  const fieldName = error.loc?.at(-1)
+  const label =
+    typeof fieldName === 'string' && fieldName in fieldLabels
+      ? fieldLabels[fieldName as keyof IncidentForm]
+      : 'This field'
+
+  if (error.type === 'string_too_short') {
+    return `${label} is required.`
+  }
+
+  return `${label}: ${error.msg ?? 'Invalid value.'}`
+}
+
+const validateForm = (form: IncidentForm) => {
+  const missingFields = (['serviceName', 'symptoms', 'logs'] as const).filter(
+    (field) => form[field].trim().length === 0,
+  )
+
+  if (missingFields.length === 0) {
+    return ''
+  }
+
+  const missingLabels = missingFields.map((field) => fieldLabels[field]).join(', ')
+
+  return `Please complete required fields before analyzing: ${missingLabels}.`
 }
 
 function App() {
@@ -135,6 +190,12 @@ function App() {
     </span>
   )
 
+  const requiredLabel = (label: string) => (
+    <span className="required-label">
+      {label} <span className="required-mark">*</span>
+    </span>
+  )
+
   const completedStepCount = analysis
     ? analysis.recommendedSteps.filter((_, index) => checkedSteps[index]).length
     : 0
@@ -163,6 +224,7 @@ function App() {
       analysisMode: form.analysisMode,
       symptoms: scenario.symptoms,
       logs: scenario.logs,
+      companyRunbookNotes: scenario.companyRunbookNotes,
     })
     setAnalysis(null)
     setError('')
@@ -170,6 +232,14 @@ function App() {
 
   const analyzeIncident = async (event: FormEvent) => {
     event.preventDefault()
+    const validationError = validateForm(form)
+
+    if (validationError) {
+      setError(validationError)
+      setAnalysis(null)
+      return
+    }
+
     setIsLoading(true)
     setError('')
     setAnalysis(null)
@@ -276,7 +346,7 @@ function App() {
 
           <label>
             <span className="label-row">
-              Service name
+              {requiredLabel('Service name')}
               {renderCounter(form.serviceName, inputLimits.serviceName)}
             </span>
             <input
@@ -288,7 +358,7 @@ function App() {
 
           <div className="form-row">
             <label>
-              Environment
+              {requiredLabel('Environment')}
               <select
                 value={form.environment}
                 onChange={(event) => updateField('environment', event.target.value)}
@@ -300,7 +370,7 @@ function App() {
             </label>
 
             <label>
-              Severity
+              {requiredLabel('Severity')}
               <select
                 value={form.severity}
                 onChange={(event) => updateField('severity', event.target.value)}
@@ -314,7 +384,7 @@ function App() {
           </div>
 
           <label>
-            Analysis mode
+            {requiredLabel('Analysis mode')}
             <select
               value={form.analysisMode}
               onChange={(event) => updateField('analysisMode', event.target.value as IncidentForm['analysisMode'])}
@@ -326,7 +396,7 @@ function App() {
 
           <label>
             <span className="label-row">
-              Symptoms
+              {requiredLabel('Symptoms')}
               {renderCounter(form.symptoms, inputLimits.symptoms)}
             </span>
             <textarea
@@ -339,7 +409,7 @@ function App() {
 
           <label>
             <span className="label-row">
-              Logs
+              {requiredLabel('Logs')}
               {renderCounter(form.logs, inputLimits.logs)}
             </span>
             <textarea
@@ -350,11 +420,29 @@ function App() {
             />
           </label>
 
+          <label>
+            <span className="label-row">
+              Company runbook notes optional
+              {renderCounter(form.companyRunbookNotes, inputLimits.companyRunbookNotes)}
+            </span>
+            <textarea
+              maxLength={inputLimits.companyRunbookNotes}
+              placeholder="Paste company-specific runbook steps, escalation notes, feature flags, service owners, or mitigation guidance."
+              value={form.companyRunbookNotes}
+              onChange={(event) => updateField('companyRunbookNotes', event.target.value)}
+              rows={5}
+            />
+          </label>
+
           <button className="primary-action" type="submit" disabled={isLoading}>
             {isLoading ? 'Analyzing...' : 'Analyze incident'}
           </button>
 
-          {error && <p className="error-message">{error}</p>}
+          {error && (
+            <p className="error-message" role="alert">
+              {error}
+            </p>
+          )}
         </form>
 
         <section className="analysis-panel">

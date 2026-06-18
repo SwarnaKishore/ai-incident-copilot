@@ -70,7 +70,7 @@ The app returns a readable incident brief:
 - Backend-only API key handling
 - Daily Claude usage limit for cost control
 - Friendly error messages when Claude is unavailable or usage limits are reached
-- Generic runbook-style guidance for common production issues
+- Runbook coverage for API errors, async backlogs, resource saturation, deployments, rollbacks, and database incidents
 
 ## How It Works
 

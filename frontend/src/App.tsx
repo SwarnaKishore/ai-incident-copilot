@@ -25,9 +25,18 @@ type IncidentAnalysis = {
   recommendedSteps: string[]
   retrievedRunbooks?: RetrievedGuidance[]
   draftUpdate: string
+  stakeholderUpdates?: StakeholderUpdates
   analysisProvider: string
   model: string
 }
+
+type StakeholderUpdates = {
+  engineering: string
+  customer: string
+  executive: string
+}
+
+type StakeholderAudience = keyof StakeholderUpdates
 
 type ProblemDetails = {
   title?: string
@@ -101,16 +110,23 @@ function App() {
   const [selectedScenarioId, setSelectedScenarioId] = useState(demoScenarios[0].id)
   const [analysis, setAnalysis] = useState<IncidentAnalysis | null>(null)
   const [checkedSteps, setCheckedSteps] = useState<Record<number, boolean>>({})
+  const [selectedAudience, setSelectedAudience] = useState<StakeholderAudience>('engineering')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
     setCheckedSteps({})
+    setSelectedAudience('engineering')
   }, [analysis])
 
   const updateField = (field: keyof IncidentForm, value: string) => {
     setSelectedScenarioId('custom')
     setForm((current) => ({ ...current, [field]: value }))
+
+    if (field === 'analysisMode') {
+      setAnalysis(null)
+      setError('')
+    }
   }
 
   const renderCounter = (value: string, limit: number) => (
@@ -122,6 +138,16 @@ function App() {
   const completedStepCount = analysis
     ? analysis.recommendedSteps.filter((_, index) => checkedSteps[index]).length
     : 0
+  const stakeholderUpdates = analysis?.stakeholderUpdates ?? {
+    engineering: analysis?.draftUpdate ?? '',
+    customer: analysis?.draftUpdate ?? '',
+    executive: analysis?.draftUpdate ?? '',
+  }
+  const audienceLabels: Record<StakeholderAudience, string> = {
+    engineering: 'Engineering',
+    customer: 'Customer',
+    executive: 'Executive',
+  }
 
   const modeDescription =
     form.analysisMode === 'claude'
@@ -427,8 +453,25 @@ function App() {
               )}
 
               <article>
-                <h3>Draft incident update</h3>
-                <p>{analysis.draftUpdate}</p>
+                <div className="article-heading">
+                  <h3>Stakeholder updates</h3>
+                  <p>Role-specific updates generated from the same incident analysis.</p>
+                </div>
+                <div className="update-tabs" aria-label="Stakeholder update audiences">
+                  {(Object.keys(audienceLabels) as StakeholderAudience[]).map((audience) => (
+                    <button
+                      className={selectedAudience === audience ? 'active' : ''}
+                      key={audience}
+                      onClick={() => setSelectedAudience(audience)}
+                      type="button"
+                    >
+                      {audienceLabels[audience]}
+                    </button>
+                  ))}
+                </div>
+                <div className="stakeholder-update">
+                  <p>{stakeholderUpdates[selectedAudience]}</p>
+                </div>
               </article>
             </div>
           )}

@@ -296,6 +296,17 @@ label {
   color: #b45309;
 }
 
+.required-label {
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.required-mark {
+  color: #b91c1c;
+  font-weight: 900;
+}
+
 input,
 select,
 textarea {

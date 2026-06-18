@@ -64,6 +64,7 @@ The app returns a readable incident brief:
 ## Features
 
 - Incident input form for service name, environment, severity, symptoms, and logs
+- Optional company runbook notes field for team-specific troubleshooting guidance
 - Mock mode for free repeatable demos
 - Claude mode for real AI analysis
 - Local RAG retrieval with visible retrieved guidance in the UI
@@ -82,6 +83,8 @@ User enters symptoms and logs
 FastAPI validates and controls the request
         |
         +--> Retrieves the most relevant runbook snippets
+        |
+        +--> Adds optional company runbook notes from the user
         |
         +--> Adds the Incident Communications Template
         |

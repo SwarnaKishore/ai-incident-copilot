@@ -8,6 +8,7 @@ The app supports a free mock mode for demos and a Claude-powered mode for real A
 - Uses local RAG to retrieve relevant runbook guidance before calling Claude
 - Keeps the Claude API key on the backend
 - Includes input limits and daily Claude usage controls
+- Uses a Python FastAPI backend for AI orchestration
 
 ## Live Demo
 
@@ -77,7 +78,7 @@ The app returns a readable incident brief:
 User enters symptoms and logs
         |
         v
-Backend builds a structured incident prompt
+FastAPI validates and controls the request
         |
         +--> Retrieves the most relevant runbook snippets
         |
@@ -89,24 +90,23 @@ Backend builds a structured incident prompt
 App displays a consistent investigation brief
 ```
 
-Instead of sending raw logs directly to Claude, the backend first retrieves relevant Markdown runbook guidance using the incident symptoms and logs. It then builds a structured prompt with the retrieved runbook snippets and the Incident Communications Template. This helps produce a more consistent response with likely cause, evidence, next steps, related guidance, and a stakeholder-ready update draft.
+Instead of sending raw logs directly to Claude, the FastAPI backend validates the request, retrieves relevant Markdown runbook guidance, builds a structured incident prompt, and calls Claude. This keeps the workflow repeatable and helps produce a consistent response with likely cause, evidence, next steps, related guidance, and a stakeholder-ready update draft.
 
 Project layout:
 
 ```text
 ai-incident-copilot/
-  backend/IncidentCopilot.Api/   .NET API and Claude integration
+  ai-service/                    Python FastAPI backend and AI orchestration
   frontend/                      React + TypeScript UI
   docs/runbooks/                 Human-readable runbook source files
-  backend/IncidentCopilot.Api/Runbooks/
-                                  Packaged runbooks used by the API RAG retriever
+  ai-service/app/runbooks/       Packaged runbooks used by the RAG retriever
   samples/incidents/             Sample incident payloads
 ```
 
 ## Built With
 
 - Frontend: React, TypeScript, Vite
-- Backend: .NET 10 Minimal API
+- Backend: Python, FastAPI
 - AI: Claude Haiku via Anthropic API
 - RAG: Local keyword retrieval over Markdown runbooks
 
@@ -115,8 +115,15 @@ ai-incident-copilot/
 Backend:
 
 ```bash
-cd backend/IncidentCopilot.Api
-dotnet run
+cd ai-service
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export ANTHROPIC_API_KEY="your_real_key_here"
+export ANTHROPIC_MODEL="claude-haiku-4-5"
+export ALLOWED_ORIGINS="http://localhost:5173"
+export CLAUDE_DAILY_LIMIT="5"
+uvicorn app.main:app --reload --port 8000
 ```
 
 Frontend:
@@ -127,19 +134,10 @@ npm install
 npm run dev
 ```
 
-Claude mode requires backend environment variables:
-
-```bash
-export ANTHROPIC_API_KEY="your_real_key_here"
-export ANTHROPIC_MODEL="claude-haiku-4-5"
-export ALLOWED_ORIGINS="http://localhost:5173"
-export CLAUDE_DAILY_LIMIT="5"
-```
-
 Frontend API URL:
 
 ```bash
-VITE_API_BASE_URL=http://localhost:5194
+VITE_API_BASE_URL=http://localhost:8000
 ```
 
 Mock mode works without an API key.
@@ -155,7 +153,7 @@ Mock mode works without an API key.
 ## Deployment Notes
 
 - Frontend is deployed on Vercel.
-- Backend is deployed on Render.
+- FastAPI backend is deployed on Render.
 - Claude API keys are stored only as backend environment variables.
 - The frontend calls the backend through `VITE_API_BASE_URL`.
 
@@ -171,7 +169,15 @@ CLAUDE_DAILY_LIMIT=5
 Frontend environment variable:
 
 ```text
-VITE_API_BASE_URL=https://ai-incident-copilot-api.onrender.com
+VITE_API_BASE_URL=https://your-fastapi-backend.onrender.com
+```
+
+Render backend settings:
+
+```text
+Root Directory: ai-service
+Environment: Docker
+Dockerfile Path: Dockerfile
 ```
 
 ## Future Enhancements

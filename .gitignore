@@ -8,6 +8,12 @@
 .env.*
 !.env.example
 
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
 # User-specific files
 *.rsuser
 *.suo

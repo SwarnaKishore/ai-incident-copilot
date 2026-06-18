@@ -47,7 +47,7 @@ const inputLimits = {
   logs: 4000,
 } as const
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5194'
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
 const demoScenarios: DemoScenario[] = [
   {
@@ -158,7 +158,7 @@ function App() {
       setError(
         error instanceof Error
           ? error.message
-          : 'Unable to analyze the incident. Confirm the .NET API is running on port 5194.',
+          : 'Unable to analyze the incident. Confirm the FastAPI backend is running on port 8000.',
       )
     } finally {
       setIsLoading(false)

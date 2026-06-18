@@ -1,0 +1,36 @@
+from pydantic import BaseModel, Field
+
+
+class IncidentAnalysisRequest(BaseModel):
+    serviceName: str = Field(min_length=1, max_length=80)
+    environment: str = Field(min_length=1)
+    severity: str = Field(min_length=1)
+    symptoms: str = Field(min_length=1, max_length=1000)
+    logs: str = Field(min_length=1, max_length=4000)
+    analysisMode: str = "mock"
+
+
+class RetrievedRunbookReference(BaseModel):
+    title: str
+    path: str
+    reason: str
+
+
+class IncidentAnalysisResponse(BaseModel):
+    summary: str
+    probableCause: str
+    confidence: str
+    evidence: list[str]
+    recommendedSteps: list[str]
+    draftUpdate: str
+    analysisProvider: str = "Claude"
+    model: str = "claude-haiku-4-5"
+    retrievedRunbooks: list[RetrievedRunbookReference] = Field(default_factory=list)
+
+
+class RetrievedRunbook(BaseModel):
+    title: str
+    path: str
+    reason: str
+    content: str
+    score: int

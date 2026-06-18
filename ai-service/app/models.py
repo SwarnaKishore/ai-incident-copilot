@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -16,6 +18,12 @@ class RetrievedRunbookReference(BaseModel):
     reason: str
 
 
+class StakeholderUpdates(BaseModel):
+    engineering: str
+    customer: str
+    executive: str
+
+
 class IncidentAnalysisResponse(BaseModel):
     summary: str
     probableCause: str
@@ -26,6 +34,7 @@ class IncidentAnalysisResponse(BaseModel):
     analysisProvider: str = "Claude"
     model: str = "claude-haiku-4-5"
     retrievedRunbooks: list[RetrievedRunbookReference] = Field(default_factory=list)
+    stakeholderUpdates: Optional[StakeholderUpdates] = None
 
 
 class RetrievedRunbook(BaseModel):

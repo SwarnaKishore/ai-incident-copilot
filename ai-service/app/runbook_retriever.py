@@ -6,7 +6,7 @@ from .models import IncidentAnalysisRequest, RetrievedRunbook
 
 MAX_RELEVANT_RUNBOOKS = 2
 MINIMUM_RELEVANT_SCORE = 2
-MAX_SNIPPET_LENGTH = 1400
+MAX_SNIPPET_LENGTH = 2200
 TOKEN_PATTERN = re.compile(r"[a-z0-9]{3,}", re.IGNORECASE)
 STOP_WORDS = {
     "the",
@@ -132,6 +132,12 @@ def get_guidance_focus(title: str) -> str:
 
     if "dependency" in normalized:
         return "Use this to review connection pools, resource saturation, dependency latency, and deployment correlation."
+
+    if "deployment" in normalized or "rollback" in normalized:
+        return "Use this to review release timing, canary impact, feature flags, rollback options, and post-rollback validation."
+
+    if "database" in normalized:
+        return "Use this to review replication lag, blocking queries, failover state, migrations, and database resource pressure."
 
     return "Use this guidance to keep the investigation focused and repeatable."
 

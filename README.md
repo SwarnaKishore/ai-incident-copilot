@@ -32,7 +32,7 @@ Note: The backend is hosted on Render's free tier, so the first request may take
 1. Pick a sample incident or paste logs from your service.
 2. Choose Mock mode for free testing or Claude mode for real AI analysis.
 3. Click Analyze incident.
-4. Review the likely cause, evidence, next steps, and draft update.
+4. Review the likely cause, evidence, checklist, retrieved guidance, and stakeholder updates.
 
 ## Example Input
 
@@ -57,9 +57,9 @@ The app returns a readable incident brief:
 - Probable cause
 - Confidence level
 - Evidence found in the logs
-- Recommended investigation steps
+- Interactive investigation checklist
 - Related runbook guidance
-- Draft incident update
+- Engineering, customer, and executive update drafts
 
 ## Features
 
@@ -67,10 +67,11 @@ The app returns a readable incident brief:
 - Mock mode for free repeatable demos
 - Claude mode for real AI analysis
 - Local RAG retrieval with visible retrieved guidance in the UI
+- Role-specific stakeholder updates for engineering, customer, and executive audiences
 - Backend-only API key handling
 - Daily Claude usage limit for cost control
 - Friendly error messages when Claude is unavailable or usage limits are reached
-- Generic runbook-style guidance for common production issues
+- Runbook coverage for API errors, async backlogs, resource saturation, deployments, rollbacks, and database incidents
 
 ## How It Works
 

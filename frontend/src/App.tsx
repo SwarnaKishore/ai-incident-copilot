@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
 
@@ -25,9 +25,18 @@ type IncidentAnalysis = {
   recommendedSteps: string[]
   retrievedRunbooks?: RetrievedGuidance[]
   draftUpdate: string
+  stakeholderUpdates?: StakeholderUpdates
   analysisProvider: string
   model: string
 }
+
+type StakeholderUpdates = {
+  engineering: string
+  customer: string
+  executive: string
+}
+
+type StakeholderAudience = keyof StakeholderUpdates
 
 type ProblemDetails = {
   title?: string
@@ -100,12 +109,24 @@ function App() {
   const [form, setForm] = useState<IncidentForm>(initialForm)
   const [selectedScenarioId, setSelectedScenarioId] = useState(demoScenarios[0].id)
   const [analysis, setAnalysis] = useState<IncidentAnalysis | null>(null)
+  const [checkedSteps, setCheckedSteps] = useState<Record<number, boolean>>({})
+  const [selectedAudience, setSelectedAudience] = useState<StakeholderAudience>('engineering')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    setCheckedSteps({})
+    setSelectedAudience('engineering')
+  }, [analysis])
 
   const updateField = (field: keyof IncidentForm, value: string) => {
     setSelectedScenarioId('custom')
     setForm((current) => ({ ...current, [field]: value }))
+
+    if (field === 'analysisMode') {
+      setAnalysis(null)
+      setError('')
+    }
   }
 
   const renderCounter = (value: string, limit: number) => (
@@ -113,6 +134,20 @@ function App() {
       {value.length.toLocaleString()} / {limit.toLocaleString()}
     </span>
   )
+
+  const completedStepCount = analysis
+    ? analysis.recommendedSteps.filter((_, index) => checkedSteps[index]).length
+    : 0
+  const stakeholderUpdates = analysis?.stakeholderUpdates ?? {
+    engineering: analysis?.draftUpdate ?? '',
+    customer: analysis?.draftUpdate ?? '',
+    executive: analysis?.draftUpdate ?? '',
+  }
+  const audienceLabels: Record<StakeholderAudience, string> = {
+    engineering: 'Engineering',
+    customer: 'Customer',
+    executive: 'Executive',
+  }
 
   const modeDescription =
     form.analysisMode === 'claude'
@@ -368,12 +403,35 @@ function App() {
               )}
 
               <article>
-                <h3>Recommended steps</h3>
-                <ol>
-                  {analysis.recommendedSteps.map((step) => (
-                    <li key={step}>{step}</li>
+                <div className="article-heading checklist-heading">
+                  <div>
+                    <h3>Investigation checklist</h3>
+                    <p>Track the next actions while you work through the incident.</p>
+                  </div>
+                  <span>
+                    {completedStepCount} / {analysis.recommendedSteps.length} done
+                  </span>
+                </div>
+                <div className="checklist">
+                  {analysis.recommendedSteps.map((step, index) => (
+                    <label
+                      className={checkedSteps[index] ? 'checklist-item completed' : 'checklist-item'}
+                      key={step}
+                    >
+                      <input
+                        checked={checkedSteps[index] ?? false}
+                        onChange={(event) =>
+                          setCheckedSteps((current) => ({
+                            ...current,
+                            [index]: event.target.checked,
+                          }))
+                        }
+                        type="checkbox"
+                      />
+                      <span>{step}</span>
+                    </label>
                   ))}
-                </ol>
+                </div>
               </article>
 
               {analysis.retrievedRunbooks && analysis.retrievedRunbooks.length > 0 && (
@@ -395,8 +453,25 @@ function App() {
               )}
 
               <article>
-                <h3>Draft incident update</h3>
-                <p>{analysis.draftUpdate}</p>
+                <div className="article-heading">
+                  <h3>Stakeholder updates</h3>
+                  <p>Role-specific updates generated from the same incident analysis.</p>
+                </div>
+                <div className="update-tabs" aria-label="Stakeholder update audiences">
+                  {(Object.keys(audienceLabels) as StakeholderAudience[]).map((audience) => (
+                    <button
+                      className={selectedAudience === audience ? 'active' : ''}
+                      key={audience}
+                      onClick={() => setSelectedAudience(audience)}
+                      type="button"
+                    >
+                      {audienceLabels[audience]}
+                    </button>
+                  ))}
+                </div>
+                <div className="stakeholder-update">
+                  <p>{stakeholderUpdates[selectedAudience]}</p>
+                </div>
               </article>
             </div>
           )}

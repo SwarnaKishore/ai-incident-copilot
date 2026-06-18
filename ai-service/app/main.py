@@ -136,7 +136,12 @@ Return only valid JSON with this exact shape:
   "confidence": "Low | Medium | High",
   "evidence": ["string"],
   "recommendedSteps": ["string"],
-  "draftUpdate": "string"
+  "draftUpdate": "string",
+  "stakeholderUpdates": {
+    "engineering": "string",
+    "customer": "string",
+    "executive": "string"
+  }
 }
 Be specific, operational, and honest about uncertainty. Do not invent tools or metrics that are not implied by the input.
 """.strip(),
@@ -203,6 +208,9 @@ Instructions:
 - Use the retrieved runbook context when it matches the incident evidence.
 - Do not return runbook reference fields; the service returns retrieved guidance separately.
 - Use the Incident Communications Template to write draftUpdate in a stakeholder-ready style.
+- stakeholderUpdates.engineering should be technical and useful for engineers working the incident.
+- stakeholderUpdates.customer should be plain language and avoid internal implementation details.
+- stakeholderUpdates.executive should be concise and summarize impact, status, suspected cause, and risk.
 """.strip()
 
 

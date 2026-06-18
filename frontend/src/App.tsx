@@ -319,28 +319,10 @@ function App() {
         </div>
       </section>
 
-      <section className="mode-guide" aria-label="How to use AI Incident Copilot">
-        <div>
-          <span className="step-index">01</span>
-          <strong>Start with logs</strong>
-          <span>Pick a demo below or paste logs from your service.</span>
-        </div>
-        <div>
-          <span className="step-index">02</span>
-          <strong>Choose a mode</strong>
-          <span>Use Mock for demos. Use Claude when analyzing your own logs.</span>
-        </div>
-        <div>
-          <span className="step-index">03</span>
-          <strong>Use the results</strong>
-          <span>See likely cause, investigation steps, related guidance, and a status update draft.</span>
-        </div>
-      </section>
-
       <section className="scenario-section" aria-label="Demo scenarios">
         <div className="section-heading">
-          <h2>Try a demo</h2>
-          <p>Start with a realistic sample or customize the form for your own case.</p>
+          <h2>Start here</h2>
+          <p>Pick a demo, then edit any field before analyzing.</p>
         </div>
         <div className="scenario-strip">
           {demoScenarios.map((scenario) => (

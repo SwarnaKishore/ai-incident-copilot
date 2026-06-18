@@ -101,59 +101,6 @@
   line-height: 1.45;
 }
 
-.mode-guide {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0;
-  border-top: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
-  margin-bottom: 22px;
-}
-
-.mode-guide div {
-  position: relative;
-  min-height: 82px;
-  padding: 18px 28px 18px 68px;
-}
-
-.mode-guide div:not(:first-child)::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 1px;
-  background: #e2e8f0;
-}
-
-.step-index {
-  position: absolute;
-  top: 20px;
-  left: 24px;
-  width: 28px;
-  color: #0f766e;
-  font-size: 12px;
-  font-weight: 900;
-  text-align: left;
-}
-
-.mode-guide strong,
-.mode-guide span:not(.step-index) {
-  display: block;
-}
-
-.mode-guide strong {
-  margin-bottom: 5px;
-  color: #111827;
-  font-size: 14px;
-}
-
-.mode-guide span:not(.step-index) {
-  color: #526173;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
 .scenario-section {
   display: grid;
   grid-template-columns: minmax(200px, 270px) minmax(0, 1fr);
@@ -668,22 +615,8 @@ li + li {
   }
 
   .workspace-grid,
-  .form-row,
-  .mode-guide {
+  .form-row {
     grid-template-columns: 1fr;
-  }
-
-  .mode-guide div {
-    padding-left: 68px;
-  }
-
-  .mode-guide div:not(:first-child)::before {
-    top: 0;
-    right: 0;
-    bottom: auto;
-    left: 0;
-    width: auto;
-    height: 1px;
   }
 
   .scenario-strip {

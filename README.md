@@ -34,6 +34,16 @@ Note: The backend is hosted on Render's free tier, so the first request may take
 3. Click Analyze incident.
 4. Review the likely cause, evidence, checklist, retrieved guidance, and stakeholder updates.
 
+## What Makes It Useful
+
+AI Incident Copilot is not just a chat prompt around Claude. It turns incident analysis into a repeatable workflow:
+
+- Combines symptoms, logs, retrieved runbooks, and optional company notes into one structured request
+- Shows which runbook guidance was used, so the answer is easier to trust and review
+- Produces consistent outputs: likely cause, evidence, checklist, related guidance, and stakeholder updates
+- Supports Mock mode for free demos and Claude mode for real analysis
+- Helps teams move from raw logs to an actionable incident plan faster
+
 ## Example Input
 
 ```text

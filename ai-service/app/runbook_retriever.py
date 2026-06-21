@@ -51,6 +51,7 @@ STOP_WORDS = {
     "service",
     "services",
     "logs",
+    "err",
     "error",
     "errors",
     "failed",
@@ -199,6 +200,7 @@ def retrieve_uploaded_runbook_chunks(uploaded_text: str, query_terms: set[str]) 
 
     for index, chunk in enumerate(selected_chunks, start=1):
         chunk.title = f"Uploaded runbook excerpt {index}"
+        chunk.path = "uploaded-runbook"
 
     return selected_chunks
 

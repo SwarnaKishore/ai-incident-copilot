@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
 
@@ -9,6 +9,7 @@ type IncidentForm = {
   symptoms: string
   logs: string
   companyRunbookNotes: string
+  uploadedRunbookText: string
   analysisMode: 'mock' | 'claude'
 }
 
@@ -62,6 +63,7 @@ const inputLimits = {
   symptoms: 1000,
   logs: 4000,
   companyRunbookNotes: 3000,
+  uploadedRunbookText: 25000,
 } as const
 
 const fieldLabels: Partial<Record<keyof IncidentForm, string>> = {
@@ -72,7 +74,10 @@ const fieldLabels: Partial<Record<keyof IncidentForm, string>> = {
   logs: 'Logs',
   analysisMode: 'Analysis mode',
   companyRunbookNotes: 'Company runbook notes',
+  uploadedRunbookText: 'Uploaded runbook',
 }
+
+const maxRunbookUploadBytes = 100 * 1024
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
@@ -92,6 +97,7 @@ Npgsql.NpgsqlException: Exception while reading from stream
 ConnectionPool: Active=98 Idle=0 Waiting=42 Max=100
 TraceId=prd-price-7f21`,
     companyRunbookNotes: '',
+    uploadedRunbookText: '',
   },
   {
     id: 'inventory-backlog',
@@ -108,6 +114,7 @@ AWS.Lambda.ThrottlingException: Rate exceeded
 DLQ messages increased from 12 to 438 in 15 minutes
 ConsumerSuccessRate=71%`,
     companyRunbookNotes: '',
+    uploadedRunbookText: '',
   },
   {
     id: 'checkout-promo-failure',
@@ -129,6 +136,7 @@ Feature flags are managed in LaunchDarkly.
 For promo-related checkout failures, disable promo-discount-v2 before rolling back the full checkout service.
 Monitor checkout_success_rate, payment_authorization_rate, and order_creation_latency for 15 minutes after mitigation.
 Escalate to the Pricing team if promotion validation errors continue after the flag is disabled.`,
+    uploadedRunbookText: '',
   },
 ]
 
@@ -247,6 +255,10 @@ ${form.logs}
 ## Company Runbook Notes
 
 ${form.companyRunbookNotes.trim() || 'None provided.'}
+
+## Uploaded Runbook Excerpts
+
+${form.uploadedRunbookText.trim() ? 'Uploaded runbook text was included for retrieval.' : 'None uploaded.'}
 `
 
 const createExportFileName = (serviceName: string) => {
@@ -268,6 +280,7 @@ function App() {
   const [copiedAudience, setCopiedAudience] = useState<StakeholderAudience | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const runbookUploadRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     setCheckedSteps({})
@@ -326,6 +339,7 @@ function App() {
       symptoms: scenario.symptoms,
       logs: scenario.logs,
       companyRunbookNotes: scenario.companyRunbookNotes,
+      uploadedRunbookText: scenario.uploadedRunbookText,
     })
     setAnalysis(null)
     setError('')
@@ -363,6 +377,42 @@ function App() {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
+  }
+
+  const handleRunbookUpload = async (file: File | undefined) => {
+    if (!file) {
+      return
+    }
+
+    const isSupportedFile = file.name.endsWith('.md') || file.name.endsWith('.txt') || file.type === 'text/plain'
+
+    if (!isSupportedFile) {
+      setError('Upload a Markdown or text runbook file.')
+      return
+    }
+
+    if (file.size > maxRunbookUploadBytes) {
+      setError('Runbook file is too large. Upload a .md or .txt file under 100 KB.')
+      return
+    }
+
+    const text = await file.text()
+    const trimmedText = text.slice(0, inputLimits.uploadedRunbookText)
+
+    updateField('uploadedRunbookText', trimmedText)
+    setError(
+      text.length > inputLimits.uploadedRunbookText
+        ? 'Runbook was uploaded and trimmed to the first 25,000 characters for this demo.'
+        : '',
+    )
+  }
+
+  const clearRunbookUpload = () => {
+    updateField('uploadedRunbookText', '')
+
+    if (runbookUploadRef.current) {
+      runbookUploadRef.current.value = ''
+    }
   }
 
   const analyzeIncident = async (event: FormEvent) => {
@@ -549,6 +599,27 @@ function App() {
               onChange={(event) => updateField('companyRunbookNotes', event.target.value)}
               rows={5}
             />
+          </label>
+
+          <label>
+            <span className="label-row">
+              Uploaded runbook optional
+              {renderCounter(form.uploadedRunbookText, inputLimits.uploadedRunbookText)}
+            </span>
+            <input
+              accept=".md,.txt,text/plain"
+              onChange={(event) => handleRunbookUpload(event.target.files?.[0])}
+              ref={runbookUploadRef}
+              type="file"
+            />
+            <span className="field-help">
+              Upload a .md or .txt file under 100 KB. The backend retrieves only the most relevant excerpts.
+            </span>
+            {form.uploadedRunbookText && (
+              <button className="text-action" onClick={clearRunbookUpload} type="button">
+                Clear uploaded runbook
+              </button>
+            )}
           </label>
 
           <button className="primary-action" type="submit" disabled={isLoading}>

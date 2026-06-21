@@ -10,6 +10,7 @@ class IncidentAnalysisRequest(BaseModel):
     symptoms: str = Field(min_length=1, max_length=1000)
     logs: str = Field(min_length=1, max_length=4000)
     companyRunbookNotes: str = Field(default="", max_length=3000)
+    uploadedRunbookText: str = Field(default="", max_length=25000)
     analysisMode: str = "mock"
 
 

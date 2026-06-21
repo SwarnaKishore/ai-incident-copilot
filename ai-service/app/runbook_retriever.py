@@ -7,6 +7,9 @@ from .models import IncidentAnalysisRequest, RetrievedRunbook
 MAX_RELEVANT_RUNBOOKS = 2
 MINIMUM_RELEVANT_SCORE = 2
 MAX_SNIPPET_LENGTH = 2200
+MAX_UPLOADED_RUNBOOK_CHUNKS = 4
+UPLOADED_CHUNK_SIZE = 1800
+UPLOADED_CHUNK_OVERLAP = 250
 TOKEN_PATTERN = re.compile(r"[a-z0-9]{3,}", re.IGNORECASE)
 STOP_WORDS = {
     "the",
@@ -171,7 +174,91 @@ def retrieve_runbooks(request: IncidentAnalysisRequest) -> list[RetrievedRunbook
             )
         )
 
+    selected.extend(retrieve_uploaded_runbook_chunks(request.uploadedRunbookText, query_terms))
+
     return selected
+
+
+def retrieve_uploaded_runbook_chunks(uploaded_text: str, query_terms: set[str]) -> list[RetrievedRunbook]:
+    if not uploaded_text.strip():
+        return []
+
+    chunks = chunk_text(uploaded_text.strip())
+    ranked_chunks = [
+        score_uploaded_chunk(chunk, index, query_terms)
+        for index, chunk in enumerate(chunks, start=1)
+    ]
+
+    return [
+        chunk
+        for chunk in sorted(ranked_chunks, key=lambda item: item.score, reverse=True)
+        if chunk.score >= MINIMUM_RELEVANT_SCORE
+    ][:MAX_UPLOADED_RUNBOOK_CHUNKS]
+
+
+def chunk_text(text: str) -> list[str]:
+    paragraphs = [paragraph.strip() for paragraph in re.split(r"\n\s*\n", text) if paragraph.strip()]
+    chunks: list[str] = []
+    current = ""
+
+    for paragraph in paragraphs:
+        next_chunk = f"{current}\n\n{paragraph}".strip() if current else paragraph
+
+        if len(next_chunk) <= UPLOADED_CHUNK_SIZE:
+            current = next_chunk
+            continue
+
+        if current:
+            chunks.append(current)
+
+        if len(paragraph) <= UPLOADED_CHUNK_SIZE:
+            current = paragraph
+        else:
+            chunks.extend(split_long_text(paragraph))
+            current = ""
+
+    if current:
+        chunks.append(current)
+
+    return chunks
+
+
+def split_long_text(text: str) -> list[str]:
+    chunks: list[str] = []
+    start = 0
+
+    while start < len(text):
+        end = min(start + UPLOADED_CHUNK_SIZE, len(text))
+        chunks.append(text[start:end])
+        start = max(end - UPLOADED_CHUNK_OVERLAP, end)
+
+    return chunks
+
+
+def score_uploaded_chunk(content: str, index: int, query_terms: set[str]) -> RetrievedRunbook:
+    chunk_terms = set(tokenize(content))
+    matched_terms = sorted(term for term in query_terms if term in chunk_terms)
+
+    return RetrievedRunbook(
+        title=f"Uploaded runbook excerpt {index}",
+        path=f"uploaded-runbook#chunk-{index}",
+        reason=build_uploaded_reason(matched_terms),
+        content=trim_snippet(content),
+        score=len(matched_terms),
+    )
+
+
+def build_uploaded_reason(matched_terms: list[str]) -> str:
+    if not matched_terms:
+        return "Selected from the uploaded runbook document."
+
+    readable_terms = []
+    for term in matched_terms:
+        formatted = format_term(term)
+        if formatted.lower() not in [existing.lower() for existing in readable_terms]:
+            readable_terms.append(formatted)
+
+    return f"Selected from the uploaded runbook because it mentions {', '.join(readable_terms[:5])}."
 
 
 def load_runbooks() -> list[tuple[str, str, str]]:

@@ -244,6 +244,30 @@ label {
   color: #b45309;
 }
 
+.field-help {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.text-action {
+  width: fit-content;
+  border: 0;
+  background: transparent;
+  color: #0f766e;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0;
+}
+
+.text-action:hover {
+  color: #115e59;
+  text-decoration: underline;
+}
+
 .required-label {
   display: inline-flex;
   gap: 4px;

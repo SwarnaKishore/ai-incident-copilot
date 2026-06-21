@@ -390,8 +390,15 @@ textarea:focus {
   padding-bottom: 18px;
 }
 
-.result-header span {
-  align-self: start;
+.result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.result-actions span {
   border: 1px solid #99f6e4;
   border-radius: 999px;
   background: #ccfbf1;
@@ -653,6 +660,15 @@ li + li {
     width: 100%;
     max-width: none;
     border-radius: 8px;
+  }
+
+  .result-header,
+  .update-heading {
+    flex-direction: column;
+  }
+
+  .result-actions {
+    align-items: flex-start;
   }
 
   .analysis-panel {

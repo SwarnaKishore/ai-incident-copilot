@@ -7,7 +7,7 @@ from .models import IncidentAnalysisRequest, RetrievedRunbook
 MAX_RELEVANT_RUNBOOKS = 2
 MINIMUM_RELEVANT_SCORE = 2
 MAX_SNIPPET_LENGTH = 2200
-MAX_UPLOADED_RUNBOOK_CHUNKS = 4
+MAX_UPLOADED_RUNBOOK_CHUNKS = 2
 UPLOADED_CHUNK_SIZE = 1800
 UPLOADED_CHUNK_OVERLAP = 250
 TOKEN_PATTERN = re.compile(r"[a-z0-9]{3,}", re.IGNORECASE)
@@ -308,7 +308,7 @@ def tokenize(value: str) -> list[str]:
     for match in TOKEN_PATTERN.finditer(normalized):
         token = match.group(0).lower()
 
-        if token in STOP_WORDS:
+        if token in STOP_WORDS or is_noise_token(token):
             continue
 
         tokens.append(token)
@@ -317,6 +317,16 @@ def tokenize(value: str) -> list[str]:
             tokens.append(token[:-1])
 
     return tokens
+
+
+def is_noise_token(token: str) -> bool:
+    if not any(character.isalpha() for character in token):
+        return True
+
+    digit_count = sum(character.isdigit() for character in token)
+    letter_count = sum(character.isalpha() for character in token)
+
+    return digit_count > letter_count
 
 
 def normalize_text(value: str) -> str:

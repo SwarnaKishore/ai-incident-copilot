@@ -187,12 +187,14 @@ function App() {
   const [analysis, setAnalysis] = useState<IncidentAnalysis | null>(null)
   const [checkedSteps, setCheckedSteps] = useState<Record<number, boolean>>({})
   const [selectedAudience, setSelectedAudience] = useState<StakeholderAudience>('engineering')
+  const [copiedAudience, setCopiedAudience] = useState<StakeholderAudience | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
     setCheckedSteps({})
     setSelectedAudience('engineering')
+    setCopiedAudience(null)
   }, [analysis])
 
   const updateField = (field: keyof IncidentForm, value: string) => {
@@ -249,6 +251,22 @@ function App() {
     })
     setAnalysis(null)
     setError('')
+  }
+
+  const copyStakeholderUpdate = async () => {
+    const update = stakeholderUpdates[selectedAudience]
+
+    if (!update) {
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(update)
+      setCopiedAudience(selectedAudience)
+      window.setTimeout(() => setCopiedAudience(null), 1800)
+    } catch {
+      setError('Unable to copy the update. Please select the text and copy it manually.')
+    }
   }
 
   const analyzeIncident = async (event: FormEvent) => {
@@ -544,9 +562,14 @@ function App() {
               )}
 
               <article>
-                <div className="article-heading">
-                  <h3>Stakeholder updates</h3>
-                  <p>Role-specific updates generated from the same incident analysis.</p>
+                <div className="article-heading update-heading">
+                  <div>
+                    <h3>Stakeholder updates</h3>
+                    <p>Role-specific updates generated from the same incident analysis.</p>
+                  </div>
+                  <button className="copy-button" onClick={copyStakeholderUpdate} type="button">
+                    {copiedAudience === selectedAudience ? 'Copied' : 'Copy'}
+                  </button>
                 </div>
                 <div className="update-tabs" aria-label="Stakeholder update audiences">
                   {(Object.keys(audienceLabels) as StakeholderAudience[]).map((audience) => (

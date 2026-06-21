@@ -56,6 +56,8 @@ STOP_WORDS = {
     "failed",
     "failure",
     "failures",
+    "controller",
+    "connecting",
     "promotion",
     "promotional",
     "issue",
@@ -189,11 +191,16 @@ def retrieve_uploaded_runbook_chunks(uploaded_text: str, query_terms: set[str]) 
         for index, chunk in enumerate(chunks, start=1)
     ]
 
-    return [
+    selected_chunks = [
         chunk
         for chunk in sorted(ranked_chunks, key=lambda item: item.score, reverse=True)
         if chunk.score >= MINIMUM_RELEVANT_SCORE
     ][:MAX_UPLOADED_RUNBOOK_CHUNKS]
+
+    for index, chunk in enumerate(selected_chunks, start=1):
+        chunk.title = f"Uploaded runbook excerpt {index}"
+
+    return selected_chunks
 
 
 def chunk_text(text: str) -> list[str]:

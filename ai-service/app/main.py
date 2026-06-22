@@ -8,7 +8,14 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .models import IncidentAnalysisRequest, IncidentAnalysisResponse, RetrievedRunbookReference
+from .document_store import store_runbook_document
+from .models import (
+    IncidentAnalysisRequest,
+    IncidentAnalysisResponse,
+    RetrievedRunbookReference,
+    RunbookUploadRequest,
+    RunbookUploadResponse,
+)
 from .mock_analyzer import analyze_mock
 from .runbook_retriever import retrieve_runbooks
 
@@ -48,6 +55,17 @@ def http_exception_handler(_request: Request, exception: HTTPException) -> JSONR
 @app.get("/")
 def health_check() -> dict[str, str]:
     return {"name": "AI Incident Copilot AI Service", "status": "Running"}
+
+
+@app.post("/api/runbooks/upload", response_model=RunbookUploadResponse)
+def upload_runbook(request: RunbookUploadRequest) -> RunbookUploadResponse:
+    document_id, chunk_count = store_runbook_document(request.fileName, request.content)
+
+    return RunbookUploadResponse(
+        documentId=document_id,
+        fileName=request.fileName,
+        chunkCount=chunk_count,
+    )
 
 
 @app.post("/api/incidents/analyze", response_model=IncidentAnalysisResponse)

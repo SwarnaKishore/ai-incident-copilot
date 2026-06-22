@@ -10,6 +10,7 @@ type IncidentForm = {
   logs: string
   companyRunbookNotes: string
   uploadedRunbookText: string
+  runbookDocumentIds: string[]
   analysisMode: 'mock' | 'claude'
 }
 
@@ -39,6 +40,12 @@ type StakeholderUpdates = {
 }
 
 type StakeholderAudience = keyof StakeholderUpdates
+
+type UploadedRunbookDocument = {
+  documentId: string
+  fileName: string
+  chunkCount: number
+}
 
 type ProblemDetails = {
   title?: string
@@ -98,6 +105,7 @@ ConnectionPool: Active=98 Idle=0 Waiting=42 Max=100
 TraceId=prd-price-7f21`,
     companyRunbookNotes: '',
     uploadedRunbookText: '',
+    runbookDocumentIds: [],
   },
   {
     id: 'inventory-backlog',
@@ -115,6 +123,7 @@ DLQ messages increased from 12 to 438 in 15 minutes
 ConsumerSuccessRate=71%`,
     companyRunbookNotes: '',
     uploadedRunbookText: '',
+    runbookDocumentIds: [],
   },
   {
     id: 'checkout-promo-failure',
@@ -137,6 +146,7 @@ For promo-related checkout failures, disable promo-discount-v2 before rolling ba
 Monitor checkout_success_rate, payment_authorization_rate, and order_creation_latency for 15 minutes after mitigation.
 Escalate to the Pricing team if promotion validation errors continue after the flag is disabled.`,
     uploadedRunbookText: '',
+    runbookDocumentIds: [],
   },
 ]
 
@@ -278,6 +288,8 @@ function App() {
   const [checkedSteps, setCheckedSteps] = useState<Record<number, boolean>>({})
   const [selectedAudience, setSelectedAudience] = useState<StakeholderAudience>('engineering')
   const [copiedAudience, setCopiedAudience] = useState<StakeholderAudience | null>(null)
+  const [uploadedRunbook, setUploadedRunbook] = useState<UploadedRunbookDocument | null>(null)
+  const [isRunbookUploading, setIsRunbookUploading] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const runbookUploadRef = useRef<HTMLInputElement | null>(null)
@@ -340,7 +352,9 @@ function App() {
       logs: scenario.logs,
       companyRunbookNotes: scenario.companyRunbookNotes,
       uploadedRunbookText: scenario.uploadedRunbookText,
+      runbookDocumentIds: scenario.runbookDocumentIds,
     })
+    setUploadedRunbook(null)
     setAnalysis(null)
     setError('')
   }
@@ -396,19 +410,54 @@ function App() {
       return
     }
 
-    const text = await file.text()
-    const trimmedText = text.slice(0, inputLimits.uploadedRunbookText)
+    setIsRunbookUploading(true)
+    setError('')
 
-    updateField('uploadedRunbookText', trimmedText)
-    setError(
-      text.length > inputLimits.uploadedRunbookText
-        ? 'Runbook was uploaded and trimmed to the first 25,000 characters for this demo.'
-        : '',
-    )
+    try {
+      const text = await file.text()
+      const trimmedText = text.slice(0, inputLimits.uploadedRunbookText)
+      const response = await fetch(`${apiBaseUrl}/api/runbooks/upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          content: trimmedText,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response))
+      }
+
+      const uploadedDocument = (await response.json()) as UploadedRunbookDocument
+
+      setUploadedRunbook(uploadedDocument)
+      setForm((current) => ({
+        ...current,
+        uploadedRunbookText: '',
+        runbookDocumentIds: [uploadedDocument.documentId],
+      }))
+      setError(
+        text.length > inputLimits.uploadedRunbookText
+          ? 'Runbook was uploaded and trimmed to the first 25,000 characters for this demo.'
+          : '',
+      )
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to upload the runbook. Confirm the FastAPI backend is running.',
+      )
+    } finally {
+      setIsRunbookUploading(false)
+    }
   }
 
   const clearRunbookUpload = () => {
-    updateField('uploadedRunbookText', '')
+    setUploadedRunbook(null)
+    setForm((current) => ({ ...current, uploadedRunbookText: '', runbookDocumentIds: [] }))
 
     if (runbookUploadRef.current) {
       runbookUploadRef.current.value = ''
@@ -604,18 +653,26 @@ function App() {
           <label>
             <span className="label-row">
               Uploaded runbook optional
-              {renderCounter(form.uploadedRunbookText, inputLimits.uploadedRunbookText)}
+              {uploadedRunbook && <span className="char-count">{uploadedRunbook.chunkCount} chunks stored</span>}
             </span>
             <input
               accept=".md,.txt,text/plain"
+              disabled={isRunbookUploading}
               onChange={(event) => handleRunbookUpload(event.target.files?.[0])}
               ref={runbookUploadRef}
               type="file"
             />
             <span className="field-help">
-              Upload a .md or .txt file under 100 KB. The backend retrieves only the most relevant excerpts.
+              {isRunbookUploading
+                ? 'Uploading and chunking runbook...'
+                : 'Upload a .md or .txt file under 100 KB. The backend stores chunks and retrieves only relevant excerpts.'}
             </span>
-            {form.uploadedRunbookText && (
+            {uploadedRunbook && (
+              <span className="upload-status">
+                Stored {uploadedRunbook.fileName}
+              </span>
+            )}
+            {uploadedRunbook && (
               <button className="text-action" onClick={clearRunbookUpload} type="button">
                 Clear uploaded runbook
               </button>

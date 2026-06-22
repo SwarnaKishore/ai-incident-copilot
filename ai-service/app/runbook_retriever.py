@@ -1,15 +1,15 @@
 import re
 from pathlib import Path
 
+from .document_store import StoredRunbookChunk, get_runbook_chunks
 from .models import IncidentAnalysisRequest, RetrievedRunbook
+from .text_chunker import chunk_text
 
 
 MAX_RELEVANT_RUNBOOKS = 2
 MINIMUM_RELEVANT_SCORE = 2
 MAX_SNIPPET_LENGTH = 2200
 MAX_UPLOADED_RUNBOOK_CHUNKS = 2
-UPLOADED_CHUNK_SIZE = 1800
-UPLOADED_CHUNK_OVERLAP = 250
 TOKEN_PATTERN = re.compile(r"[a-z0-9]{3,}", re.IGNORECASE)
 STOP_WORDS = {
     "the",
@@ -178,6 +178,7 @@ def retrieve_runbooks(request: IncidentAnalysisRequest) -> list[RetrievedRunbook
         )
 
     selected.extend(retrieve_uploaded_runbook_chunks(request.uploadedRunbookText, query_terms))
+    selected.extend(retrieve_stored_runbook_chunks(request.runbookDocumentIds, query_terms))
 
     return selected
 
@@ -205,43 +206,24 @@ def retrieve_uploaded_runbook_chunks(uploaded_text: str, query_terms: set[str]) 
     return selected_chunks
 
 
-def chunk_text(text: str) -> list[str]:
-    paragraphs = [paragraph.strip() for paragraph in re.split(r"\n\s*\n", text) if paragraph.strip()]
-    chunks: list[str] = []
-    current = ""
+def retrieve_stored_runbook_chunks(document_ids: list[str], query_terms: set[str]) -> list[RetrievedRunbook]:
+    if not document_ids:
+        return []
 
-    for paragraph in paragraphs:
-        next_chunk = f"{current}\n\n{paragraph}".strip() if current else paragraph
+    ranked_chunks = [
+        score_stored_chunk(chunk, query_terms)
+        for chunk in get_runbook_chunks(document_ids)
+    ]
+    selected_chunks = [
+        chunk
+        for chunk in sorted(ranked_chunks, key=lambda item: item.score, reverse=True)
+        if chunk.score >= MINIMUM_RELEVANT_SCORE
+    ][:MAX_UPLOADED_RUNBOOK_CHUNKS]
 
-        if len(next_chunk) <= UPLOADED_CHUNK_SIZE:
-            current = next_chunk
-            continue
+    for index, chunk in enumerate(selected_chunks, start=1):
+        chunk.title = f"Stored runbook excerpt {index}"
 
-        if current:
-            chunks.append(current)
-
-        if len(paragraph) <= UPLOADED_CHUNK_SIZE:
-            current = paragraph
-        else:
-            chunks.extend(split_long_text(paragraph))
-            current = ""
-
-    if current:
-        chunks.append(current)
-
-    return chunks
-
-
-def split_long_text(text: str) -> list[str]:
-    chunks: list[str] = []
-    start = 0
-
-    while start < len(text):
-        end = min(start + UPLOADED_CHUNK_SIZE, len(text))
-        chunks.append(text[start:end])
-        start = max(end - UPLOADED_CHUNK_OVERLAP, end)
-
-    return chunks
+    return selected_chunks
 
 
 def score_uploaded_chunk(content: str, index: int, query_terms: set[str]) -> RetrievedRunbook:
@@ -253,6 +235,19 @@ def score_uploaded_chunk(content: str, index: int, query_terms: set[str]) -> Ret
         path=f"uploaded-runbook#chunk-{index}",
         reason=build_uploaded_reason(matched_terms),
         content=trim_snippet(content),
+        score=len(matched_terms),
+    )
+
+
+def score_stored_chunk(chunk: StoredRunbookChunk, query_terms: set[str]) -> RetrievedRunbook:
+    chunk_terms = set(tokenize(chunk.content))
+    matched_terms = sorted(term for term in query_terms if term in chunk_terms)
+
+    return RetrievedRunbook(
+        title=f"Stored runbook excerpt {chunk.chunk_index}",
+        path=chunk.file_name,
+        reason=build_uploaded_reason(matched_terms),
+        content=trim_snippet(chunk.content),
         score=len(matched_terms),
     )
 

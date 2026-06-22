@@ -11,6 +11,7 @@ class IncidentAnalysisRequest(BaseModel):
     logs: str = Field(min_length=1, max_length=4000)
     companyRunbookNotes: str = Field(default="", max_length=3000)
     uploadedRunbookText: str = Field(default="", max_length=25000)
+    runbookDocumentIds: list[str] = Field(default_factory=list)
     analysisMode: str = "mock"
 
 
@@ -45,3 +46,14 @@ class RetrievedRunbook(BaseModel):
     reason: str
     content: str
     score: int
+
+
+class RunbookUploadRequest(BaseModel):
+    fileName: str = Field(min_length=1, max_length=160)
+    content: str = Field(min_length=1, max_length=25000)
+
+
+class RunbookUploadResponse(BaseModel):
+    documentId: str
+    fileName: str
+    chunkCount: int

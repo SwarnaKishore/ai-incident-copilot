@@ -68,7 +68,7 @@ The app returns a readable incident brief:
 - Mock mode for free repeatable demos
 - Claude mode for real AI analysis
 - Local RAG retrieval with visible retrieved guidance in the UI
-- Markdown/text runbook upload with backend chunking and local vector similarity search
+- Markdown, text, and PDF runbook upload with backend chunking and local vector similarity search
 - Role-specific stakeholder updates for engineering, customer, and executive audiences
 - Backend-only API key handling
 - Daily Claude usage limit for cost control
@@ -104,18 +104,19 @@ FastAPI validates and controls the request
 App displays a consistent investigation brief
 ```
 
-Instead of sending raw logs directly to Claude, the FastAPI backend validates the request, retrieves relevant Markdown runbook guidance, builds a structured incident prompt, and calls Claude. This keeps the workflow repeatable and helps produce a consistent response with likely cause, evidence, next steps, related guidance, and a stakeholder-ready update draft.
+Instead of sending raw logs directly to Claude, the FastAPI backend validates the request, retrieves relevant runbook guidance, builds a structured incident prompt, and calls Claude. This keeps the workflow repeatable and helps produce a consistent response with likely cause, evidence, next steps, related guidance, and a stakeholder-ready update draft.
 
 ## RAG Flow
 
 AI Incident Copilot supports uploaded runbook guidance with a local vector-search workflow:
 
-1. User uploads a Markdown or text runbook.
-2. The FastAPI backend chunks the document.
-3. Each chunk is converted into a local sparse embedding.
-4. When an incident is submitted, the backend embeds the incident query.
-5. The app retrieves the most similar uploaded runbook chunks.
-6. Claude receives the incident details plus retrieved guidance to generate the response.
+1. User uploads a Markdown, text, or PDF runbook.
+2. The FastAPI backend extracts readable text from the document.
+3. The backend chunks the document into focused excerpts.
+4. Each chunk is converted into a local sparse embedding.
+5. When an incident is submitted, the backend embeds the incident query.
+6. The app retrieves the most similar uploaded runbook chunks.
+7. Claude receives the incident details plus retrieved guidance to generate the response.
 
 This grounds the analysis in runbook context instead of relying only on a raw prompt.
 

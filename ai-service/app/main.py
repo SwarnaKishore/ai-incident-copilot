@@ -4,7 +4,7 @@ import urllib.error
 import urllib.request
 from datetime import date
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -13,10 +13,10 @@ from .models import (
     IncidentAnalysisRequest,
     IncidentAnalysisResponse,
     RetrievedRunbookReference,
-    RunbookUploadRequest,
     RunbookUploadResponse,
 )
 from .mock_analyzer import analyze_mock
+from .runbook_file_parser import extract_runbook_text
 from .runbook_retriever import retrieve_runbooks
 
 
@@ -58,12 +58,13 @@ def health_check() -> dict[str, str]:
 
 
 @app.post("/api/runbooks/upload", response_model=RunbookUploadResponse)
-def upload_runbook(request: RunbookUploadRequest) -> RunbookUploadResponse:
-    document_id, chunk_count = store_runbook_document(request.fileName, request.content)
+async def upload_runbook(file: UploadFile) -> RunbookUploadResponse:
+    file_name, content = await extract_runbook_text(file)
+    document_id, chunk_count = store_runbook_document(file_name, content)
 
     return RunbookUploadResponse(
         documentId=document_id,
-        fileName=request.fileName,
+        fileName=file_name,
         chunkCount=chunk_count,
     )
 

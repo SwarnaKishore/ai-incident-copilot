@@ -19,7 +19,7 @@ export const fieldLabels: Partial<Record<keyof IncidentForm, string>> = {
   uploadedRunbookText: 'Uploaded runbook',
 }
 
-export const maxRunbookUploadBytes = 100 * 1024
+export const maxRunbookUploadBytes = 2 * 1024 * 1024
 
 export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 

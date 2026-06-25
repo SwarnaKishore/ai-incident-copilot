@@ -78,41 +78,58 @@ The app returns a readable incident brief:
 ## How It Works
 
 ```mermaid
-flowchart LR
-    user["User"] --> ui["React + TypeScript UI<br/>Vercel"]
+flowchart TB
+    title["AI Incident Copilot"]
 
-    subgraph frontend["Frontend"]
-        ui --> form["Incident form<br/>symptoms, logs, severity"]
-        ui --> upload["Runbook upload<br/>Markdown, text, PDF"]
-        ui --> result["Incident brief<br/>checklist, guidance, updates"]
+    subgraph frontend["React Frontend - Vercel"]
+        form["Incident Form<br/>Symptoms, logs, severity, runbook notes"]
+        upload["Runbook Upload<br/>Markdown, text, PDF"]
+        result["Analysis Result<br/>Probable cause, evidence, checklist, stakeholder updates"]
     end
 
-    subgraph backend["Python FastAPI Backend<br/>Render"]
-        analyze["/api/incidents/analyze"]
-        uploadApi["/api/runbooks/upload"]
-        controls["Validation + daily Claude limit"]
-        parser["Document text extraction"]
-        retrieval["Local RAG retrieval<br/>chunking + sparse embeddings + vector similarity"]
-        prompt["Structured incident prompt"]
-        mock["Mock analyzer"]
+    subgraph backend["Python FastAPI Backend - Render"]
+        analyze["/api/incidents/analyze<br/>1. Validate request<br/>2. Check daily Claude limit<br/>3. Retrieve relevant runbooks<br/>4. Call Claude or Mock<br/>5. Return structured analysis"]
+        uploadApi["/api/runbooks/upload<br/>Extract text, chunk document, store embeddings"]
+
+        subgraph rag["RAG Pipeline"]
+            tokenize["Tokenize incident query"]
+            embed["Create local sparse embeddings"]
+            search["Vector similarity search"]
+            prompt["Build structured incident prompt"]
+        end
+
+        mock["Mock analysis mode<br/>Free deterministic demo output"]
     end
 
-    subgraph knowledge["Runbook Knowledge"]
-        builtin["Built-in runbooks<br/>API errors, async backlogs, database, deployments, communications"]
-        uploaded["Uploaded runbooks<br/>stored in memory for retrieval"]
+    subgraph store["Local Runbook Store"]
+        builtin["Built-in Markdown runbooks<br/>API errors, async backlogs, database incidents,<br/>dependency saturation, deployment rollback,<br/>incident communications"]
+        uploaded["Uploaded runbooks<br/>Markdown/text/PDF -> extracted text -> chunks -> embeddings -> in-memory store"]
     end
 
-    claude["Claude API<br/>backend API key only"]
+    subgraph external["External Services"]
+        claude["Claude API<br/>Haiku model<br/>API key stored on backend only"]
+    end
 
-    form --> analyze
-    upload --> uploadApi
-    uploadApi --> parser --> uploaded
-    analyze --> controls --> retrieval
-    builtin --> retrieval
-    uploaded --> retrieval
-    retrieval --> prompt
+    subgraph controls["Security and Cost Controls"]
+        key["Backend-only API key"]
+        limit["Daily Claude request limit"]
+        validation["Frontend and backend input validation"]
+        cors["Allowed origins with CORS"]
+        errors["Friendly error handling"]
+    end
+
+    title --> frontend
+    form -- "JSON over HTTP" --> analyze
+    upload -- "multipart upload" --> uploadApi
+    uploadApi --> uploaded
+
+    analyze --> tokenize --> embed --> search --> prompt
+    builtin --> search
+    uploaded --> search
     prompt --> claude --> result
-    controls --> mock --> result
+    analyze --> mock --> result
+
+    controls --> backend
 ```
 
 ```text

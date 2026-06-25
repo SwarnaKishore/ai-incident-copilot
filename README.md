@@ -77,59 +77,71 @@ The app returns a readable incident brief:
 
 ## How It Works
 
-```mermaid
-flowchart TB
-    title["AI Incident Copilot"]
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           AI INCIDENT COPILOT                               │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-    subgraph frontend["React Frontend - Vercel"]
-        form["Incident Form<br/>Symptoms, logs, severity, runbook notes"]
-        upload["Runbook Upload<br/>Markdown, text, PDF"]
-        result["Analysis Result<br/>Probable cause, evidence, checklist, stakeholder updates"]
-    end
+┌──────────────────────┐         ┌─────────────────────────────────────────┐
+│   React Frontend     │         │         Python FastAPI Backend          │
+│   (Vercel Deploy)    │         │         (Render Deploy)                 │
+│                      │         │                                         │
+│  ┌────────────────┐  │ HTTP    │  ┌───────────────────────────────────┐  │
+│  │ Incident Form  │──┼─────────┼─▶│ /api/incidents/analyze            │  │
+│  │ - Symptoms     │  │  JSON   │  │                                   │  │
+│  │ - Logs         │  │         │  │  1. Validate request              │  │
+│  │ - Severity     │  │         │  │  2. Check daily Claude limit      │  │
+│  │ - Runbook notes│  │         │  │  3. Retrieve relevant runbooks    │  │
+│  └────────────────┘  │         │  │  4. Call Claude (or Mock)         │  │
+│                      │         │  │  5. Return structured analysis    │  │
+│  ┌────────────────┐  │         │  └───────────────────────────────────┘  │
+│  │ Runbook Upload │──┼─────────┼─▶│ /api/runbooks/upload                │  │
+│  │ (MD/Txt/PDF)   │  │         │                                         │
+│  └────────────────┘  │         │  ┌───────────────────────────────────┐  │
+│                      │         │  │ RAG Pipeline                      │  │
+│  ┌────────────────┐  │         │  │                                   │  │
+│  │ Analysis Result│◀─┼─────────┼─│  • Tokenize query & runbooks       │  │
+│  │ - Probable cause│ │         │  │  • Sparse embeddings              │  │
+│  │ - Evidence     │  │         │  │  • Vector similarity search       │  │
+│  │ - Checklist    │  │         │  │  • Signal term boosting           │  │
+│  │ - Stakeholder  │  │         │  │  • Document chunking              │  │
+│  │   updates      │  │         │  └───────────────────────────────────┘  │
+│  └────────────────┘  │         │                                         │
+└──────────────────────┘         │  ┌───────────────────────────────────┐  │
+                                 │  │ External Services                 │  │
+                                 │  │                                   │  │
+                                 │  │  ┌─────────────┐                  │  │
+                                 │  │  │ Claude API  │◀── API Key       │  │
+                                 │  │  │ (Haiku)     │    (Backend only)│  │
+                                 │  │  └─────────────┘                  │  │
+                                 │  └───────────────────────────────────┘  │
+                                 └─────────────────────────────────────────┘
 
-    subgraph backend["Python FastAPI Backend - Render"]
-        analyze["/api/incidents/analyze<br/>1. Validate request<br/>2. Check daily Claude limit<br/>3. Retrieve relevant runbooks<br/>4. Call Claude or Mock<br/>5. Return structured analysis"]
-        uploadApi["/api/runbooks/upload<br/>Extract text, chunk document, store embeddings"]
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         LOCAL RUNBOOK STORE                                │
+│                                                                             │
+│  Built-in Runbooks (Markdown):                                              │
+│  • API Error & Timeout Triage                                               │
+│  • Async Processing Backlog                                                 │
+│  • Database Incident Triage                                                 │
+│  • Dependency & Resource Saturation                                         │
+│  • Deployment & Rollback                                                    │
+│  • Incident Communications Template                                         │
+│                                                                             │
+│  Uploaded Runbooks:                                                         │
+│  • Markdown/Text/PDF → Extracted text → Chunked → Embedded → In memory      │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-        subgraph rag["RAG Pipeline"]
-            tokenize["Tokenize incident query"]
-            embed["Create local sparse embeddings"]
-            search["Vector similarity search"]
-            prompt["Build structured incident prompt"]
-        end
+KEY FLOW: User Input → Query Tokenization → Runbook Retrieval (RAG) →
+          Structured Prompt → Claude API → JSON Response → UI Display
 
-        mock["Mock analysis mode<br/>Free deterministic demo output"]
-    end
-
-    subgraph store["Local Runbook Store"]
-        builtin["Built-in Markdown runbooks<br/>API errors, async backlogs, database incidents,<br/>dependency saturation, deployment rollback,<br/>incident communications"]
-        uploaded["Uploaded runbooks<br/>Markdown/text/PDF -> extracted text -> chunks -> embeddings -> in-memory store"]
-    end
-
-    subgraph external["External Services"]
-        claude["Claude API<br/>Haiku model<br/>API key stored on backend only"]
-    end
-
-    subgraph controls["Security and Cost Controls"]
-        key["Backend-only API key"]
-        limit["Daily Claude request limit"]
-        validation["Frontend and backend input validation"]
-        cors["Allowed origins with CORS"]
-        errors["Friendly error handling"]
-    end
-
-    title --> frontend
-    form -- "JSON over HTTP" --> analyze
-    upload -- "multipart upload" --> uploadApi
-    uploadApi --> uploaded
-
-    analyze --> tokenize --> embed --> search --> prompt
-    builtin --> search
-    uploaded --> search
-    prompt --> claude --> result
-    analyze --> mock --> result
-
-    controls --> backend
+SECURITY & COST CONTROLS:
+├─ API keys stored only in backend environment variables
+├─ Daily Claude request limit (CLAUDE_DAILY_LIMIT env var)
+├─ Input length validation (frontend + backend)
+├─ CORS middleware for allowed origins
+├─ Mock mode for free demos (no API calls)
+└─ Graceful error handling with user-friendly messages
 ```
 
 ```text

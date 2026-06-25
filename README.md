@@ -170,6 +170,18 @@ VITE_API_BASE_URL=http://localhost:8000
 
 Mock mode works without an API key.
 
+## Retrieval Evaluations
+
+Run the retrieval evals to verify known incidents retrieve the expected guidance:
+
+```bash
+cd ai-service
+source .venv/bin/activate
+pytest evals
+```
+
+The evals cover pricing timeouts, inventory backlog, checkout release regression, uploaded runbook vector retrieval, and runbooks that should not be retrieved.
+
 ## Cost And Safety
 
 - Mock mode is free and does not call Claude.
@@ -211,10 +223,8 @@ Dockerfile Path: Dockerfile
 ## Future Enhancements
 
 - Save incident history and analysis results with PostgreSQL
-- Upload custom runbooks and troubleshooting documents
-- Add vector search for more advanced runbook retrieval
 - Add Playwright end-to-end tests
-- Add evaluation cases for known incident scenarios
+- Persist uploaded runbook embeddings with PostgreSQL + pgvector
 
 ## License
 

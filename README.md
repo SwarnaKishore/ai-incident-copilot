@@ -5,7 +5,7 @@ AI Incident Copilot helps teams turn incident symptoms and service logs into a c
 The app supports a free mock mode for demos and a Claude-powered mode for real AI analysis. It is designed for production support scenarios where engineers need a quick starting point: likely cause, evidence from logs, next investigation steps, related guidance, and a draft status update.
 
 - Works with logs from your service
-- Uses local RAG to retrieve relevant runbook guidance before calling Claude
+- Uses local RAG and vector similarity to retrieve relevant runbook guidance before calling Claude
 - Keeps the Claude API key on the backend
 - Includes input limits and daily Claude usage controls
 - Uses a Python FastAPI backend for AI orchestration
@@ -78,6 +78,7 @@ The app returns a readable incident brief:
 - Mock mode for free repeatable demos
 - Claude mode for real AI analysis
 - Local RAG retrieval with visible retrieved guidance in the UI
+- Markdown/text runbook upload with backend chunking and local vector similarity search
 - Role-specific stakeholder updates for engineering, customer, and executive audiences
 - Backend-only API key handling
 - Daily Claude usage limit for cost control
@@ -92,7 +93,7 @@ User enters symptoms and logs
         v
 FastAPI validates and controls the request
         |
-        +--> Retrieves the most relevant runbook snippets
+        +--> Retrieves the most relevant runbook snippets and uploaded runbook excerpts
         |
         +--> Adds optional company runbook notes from the user
         |
@@ -105,6 +106,19 @@ App displays a consistent investigation brief
 ```
 
 Instead of sending raw logs directly to Claude, the FastAPI backend validates the request, retrieves relevant Markdown runbook guidance, builds a structured incident prompt, and calls Claude. This keeps the workflow repeatable and helps produce a consistent response with likely cause, evidence, next steps, related guidance, and a stakeholder-ready update draft.
+
+## RAG Flow
+
+AI Incident Copilot supports uploaded runbook guidance with a local vector-search workflow:
+
+1. User uploads a Markdown or text runbook.
+2. The FastAPI backend chunks the document.
+3. Each chunk is converted into a local sparse embedding.
+4. When an incident is submitted, the backend embeds the incident query.
+5. The app retrieves the most similar uploaded runbook chunks.
+6. Claude receives the incident details plus retrieved guidance to generate the response.
+
+This grounds the analysis in runbook context instead of relying only on a raw prompt.
 
 Project layout:
 
@@ -122,7 +136,7 @@ ai-incident-copilot/
 - Frontend: React, TypeScript, Vite
 - Backend: Python, FastAPI
 - AI: Claude Haiku via Anthropic API
-- RAG: Local keyword retrieval over Markdown runbooks
+- RAG: Built-in runbook retrieval plus local vector similarity search for uploaded runbooks
 
 ## Running Locally
 

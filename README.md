@@ -17,16 +17,6 @@ The app supports a free mock mode for demos and a Claude-powered mode for real A
 
 Note: The backend is hosted on Render's free tier, so the first request may take a short moment if the service has been inactive.
 
-## Screenshots
-
-### Incident Workspace
-
-![AI Incident Copilot workspace](docs/images/incident-copilot-workspace.png)
-
-### Claude Analysis Result
-
-![AI Incident Copilot Claude analysis result](docs/images/incident-copilot-analysis.png)
-
 ## Quick Demo
 
 1. Pick a sample incident or paste logs from your service.
@@ -86,6 +76,15 @@ The app returns a readable incident brief:
 - Runbook coverage for API errors, async backlogs, resource saturation, deployments, rollbacks, and database incidents
 
 ## How It Works
+
+```mermaid
+flowchart LR
+    UI["React UI"] --> API["FastAPI backend"]
+    API --> RAG["Runbook retrieval + local vector search"]
+    RAG --> PROMPT["Structured incident prompt"]
+    PROMPT --> CLAUDE["Claude"]
+    CLAUDE --> RESULT["Incident brief + stakeholder updates"]
+```
 
 ```text
 User enters symptoms and logs

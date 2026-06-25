@@ -4,6 +4,7 @@ from pathlib import Path
 from .document_store import StoredRunbookChunk, get_runbook_chunks
 from .models import IncidentAnalysisRequest, RetrievedRunbook
 from .text_chunker import chunk_text
+from .vector_retriever import VectorSearchResult, search_chunks
 
 
 MAX_RELEVANT_RUNBOOKS = 2
@@ -178,7 +179,7 @@ def retrieve_runbooks(request: IncidentAnalysisRequest) -> list[RetrievedRunbook
         )
 
     selected.extend(retrieve_uploaded_runbook_chunks(request.uploadedRunbookText, query_terms))
-    selected.extend(retrieve_stored_runbook_chunks(request.runbookDocumentIds, query_terms))
+    selected.extend(retrieve_stored_runbook_chunks(request.runbookDocumentIds, query))
 
     return selected
 
@@ -206,19 +207,14 @@ def retrieve_uploaded_runbook_chunks(uploaded_text: str, query_terms: set[str]) 
     return selected_chunks
 
 
-def retrieve_stored_runbook_chunks(document_ids: list[str], query_terms: set[str]) -> list[RetrievedRunbook]:
+def retrieve_stored_runbook_chunks(document_ids: list[str], query: str) -> list[RetrievedRunbook]:
     if not document_ids:
         return []
 
-    ranked_chunks = [
-        score_stored_chunk(chunk, query_terms)
-        for chunk in get_runbook_chunks(document_ids)
-    ]
     selected_chunks = [
-        chunk
-        for chunk in sorted(ranked_chunks, key=lambda item: item.score, reverse=True)
-        if chunk.score >= MINIMUM_RELEVANT_SCORE
-    ][:MAX_UPLOADED_RUNBOOK_CHUNKS]
+        score_vector_result(result)
+        for result in search_chunks(query, get_runbook_chunks(document_ids), MAX_UPLOADED_RUNBOOK_CHUNKS)
+    ]
 
     for index, chunk in enumerate(selected_chunks, start=1):
         chunk.title = f"Stored runbook excerpt {index}"
@@ -249,6 +245,26 @@ def score_stored_chunk(chunk: StoredRunbookChunk, query_terms: set[str]) -> Retr
         reason=build_uploaded_reason(matched_terms),
         content=trim_snippet(chunk.content),
         score=len(matched_terms),
+    )
+
+
+def score_vector_result(result: VectorSearchResult) -> RetrievedRunbook:
+    return RetrievedRunbook(
+        title=f"Stored runbook excerpt {result.chunk.chunk_index}",
+        path=result.chunk.file_name,
+        reason=build_vector_reason(result.matched_terms, result.similarity),
+        content=trim_snippet(result.chunk.content),
+        score=round(result.similarity * 1000),
+    )
+
+
+def build_vector_reason(matched_terms: list[str], similarity: float) -> str:
+    if not matched_terms:
+        return "Selected from the uploaded runbook by vector similarity search."
+
+    return (
+        f"Selected from the uploaded runbook by vector similarity "
+        f"({similarity:.2f}) for {', '.join(format_term(term) for term in matched_terms)}."
     )
 
 

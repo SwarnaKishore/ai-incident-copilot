@@ -79,11 +79,40 @@ The app returns a readable incident brief:
 
 ```mermaid
 flowchart LR
-    UI["React UI"] --> API["FastAPI backend"]
-    API --> RAG["Runbook retrieval + local vector search"]
-    RAG --> PROMPT["Structured incident prompt"]
-    PROMPT --> CLAUDE["Claude"]
-    CLAUDE --> RESULT["Incident brief + stakeholder updates"]
+    user["User"] --> ui["React + TypeScript UI<br/>Vercel"]
+
+    subgraph frontend["Frontend"]
+        ui --> form["Incident form<br/>symptoms, logs, severity"]
+        ui --> upload["Runbook upload<br/>Markdown, text, PDF"]
+        ui --> result["Incident brief<br/>checklist, guidance, updates"]
+    end
+
+    subgraph backend["Python FastAPI Backend<br/>Render"]
+        analyze["/api/incidents/analyze"]
+        uploadApi["/api/runbooks/upload"]
+        controls["Validation + daily Claude limit"]
+        parser["Document text extraction"]
+        retrieval["Local RAG retrieval<br/>chunking + sparse embeddings + vector similarity"]
+        prompt["Structured incident prompt"]
+        mock["Mock analyzer"]
+    end
+
+    subgraph knowledge["Runbook Knowledge"]
+        builtin["Built-in runbooks<br/>API errors, async backlogs, database, deployments, communications"]
+        uploaded["Uploaded runbooks<br/>stored in memory for retrieval"]
+    end
+
+    claude["Claude API<br/>backend API key only"]
+
+    form --> analyze
+    upload --> uploadApi
+    uploadApi --> parser --> uploaded
+    analyze --> controls --> retrieval
+    builtin --> retrieval
+    uploaded --> retrieval
+    retrieval --> prompt
+    prompt --> claude --> result
+    controls --> mock --> result
 ```
 
 ```text

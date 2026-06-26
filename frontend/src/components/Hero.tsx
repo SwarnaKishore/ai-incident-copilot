@@ -1,3 +1,4 @@
+import { IconBolt } from '@tabler/icons-react'
 import type { IncidentForm } from '../types'
 
 type HeroProps = {
@@ -8,7 +9,7 @@ export function Hero({ analysisMode }: HeroProps) {
   return (
     <section className="workspace-hero">
       <div className="workspace-header">
-        <p className="eyebrow">AI Incident Copilot</p>
+        <p className="eyebrow"><IconBolt size={18} stroke={2.2} aria-hidden="true" /> AI Incident Copilot</p>
         <h1>Production incident analysis workspace</h1>
         <p className="intro">
           Turn incident symptoms and logs into an investigation brief your team can act on.
@@ -22,12 +23,11 @@ export function Hero({ analysisMode }: HeroProps) {
       </div>
 
       <div className="hero-summary">
-        <div className="hero-status">
-          <span>Active mode</span>
-          <strong>{analysisMode === 'claude' ? 'Claude analysis' : 'Mock analysis'}</strong>
-        </div>
+        <strong><span aria-hidden="true"></span>{analysisMode === 'claude' ? 'Claude analysis' : 'Mock analysis'}</strong>
         <p>
-          Mock is free for demos. Claude uses the backend AI configuration for real analysis.
+          {analysisMode === 'claude'
+            ? 'Real AI analysis using the backend Claude configuration'
+            : 'Free demo · deterministic results · preview before real Claude analysis'}
         </p>
       </div>
     </section>

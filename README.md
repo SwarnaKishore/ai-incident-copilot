@@ -20,9 +20,10 @@ Note: The backend is hosted on Render's free tier, so the first request may take
 ## Quick Demo
 
 1. Pick a sample incident or paste logs from your service.
-2. Choose Mock mode for free testing or Claude mode for real AI analysis.
-3. Click Analyze incident.
-4. Review the likely cause, evidence, checklist, retrieved guidance, and stakeholder updates.
+2. Optionally upload `samples/runbooks/checkout-release-runbook.md` to test runbook retrieval.
+3. Choose Mock mode for free testing or Claude mode for real AI analysis.
+4. Click Analyze incident.
+5. Review the likely cause, evidence, checklist, retrieved guidance, and stakeholder updates.
 
 ## What Makes It Useful
 
@@ -187,6 +188,7 @@ ai-incident-copilot/
   docs/runbooks/                 Human-readable runbook source files
   ai-service/app/runbooks/       Packaged runbooks used by the RAG retriever
   samples/incidents/             Sample incident payloads
+  samples/runbooks/              Sample uploadable runbooks for demos
 ```
 
 ## Built With

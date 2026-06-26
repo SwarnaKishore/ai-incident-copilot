@@ -68,7 +68,7 @@ The app returns a readable incident brief:
 - Mock mode for free repeatable demos
 - Claude mode for real AI analysis
 - Local RAG retrieval with visible retrieved guidance in the UI
-- Markdown/text runbook upload with backend chunking and local vector similarity search
+- Markdown, text, and PDF runbook upload with backend chunking and local vector similarity search
 - Role-specific stakeholder updates for engineering, customer, and executive audiences
 - Backend-only API key handling
 - Daily Claude usage limit for cost control
@@ -77,13 +77,71 @@ The app returns a readable incident brief:
 
 ## How It Works
 
-```mermaid
-flowchart LR
-    UI["React UI"] --> API["FastAPI backend"]
-    API --> RAG["Runbook retrieval + local vector search"]
-    RAG --> PROMPT["Structured incident prompt"]
-    PROMPT --> CLAUDE["Claude"]
-    CLAUDE --> RESULT["Incident brief + stakeholder updates"]
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           AI INCIDENT COPILOT                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────┐         ┌─────────────────────────────────────────┐
+│   React Frontend     │         │         Python FastAPI Backend          │
+│   (Vercel Deploy)    │         │         (Render Deploy)                 │
+│                      │         │                                         │
+│  ┌────────────────┐  │ HTTP    │  ┌───────────────────────────────────┐  │
+│  │ Incident Form  │──┼─────────┼─▶│ /api/incidents/analyze            │  │
+│  │ - Symptoms     │  │  JSON   │  │                                   │  │
+│  │ - Logs         │  │         │  │  1. Validate request              │  │
+│  │ - Severity     │  │         │  │  2. Check daily Claude limit      │  │
+│  │ - Runbook notes│  │         │  │  3. Retrieve relevant runbooks    │  │
+│  └────────────────┘  │         │  │  4. Call Claude (or Mock)         │  │
+│                      │         │  │  5. Return structured analysis    │  │
+│  ┌────────────────┐  │         │  └───────────────────────────────────┘  │
+│  │ Runbook Upload │──┼─────────┼─▶│ /api/runbooks/upload                │  │
+│  │ (MD/Txt/PDF)   │  │         │                                         │
+│  └────────────────┘  │         │  ┌───────────────────────────────────┐  │
+│                      │         │  │ RAG Pipeline                      │  │
+│  ┌────────────────┐  │         │  │                                   │  │
+│  │ Analysis Result│◀─┼─────────┼─│  • Tokenize query & runbooks       │  │
+│  │ - Probable cause│ │         │  │  • Sparse embeddings              │  │
+│  │ - Evidence     │  │         │  │  • Vector similarity search       │  │
+│  │ - Checklist    │  │         │  │  • Signal term boosting           │  │
+│  │ - Stakeholder  │  │         │  │  • Document chunking              │  │
+│  │   updates      │  │         │  └───────────────────────────────────┘  │
+│  └────────────────┘  │         │                                         │
+└──────────────────────┘         │  ┌───────────────────────────────────┐  │
+                                 │  │ External Services                 │  │
+                                 │  │                                   │  │
+                                 │  │  ┌─────────────┐                  │  │
+                                 │  │  │ Claude API  │◀── API Key       │  │
+                                 │  │  │ (Haiku)     │    (Backend only)│  │
+                                 │  │  └─────────────┘                  │  │
+                                 │  └───────────────────────────────────┘  │
+                                 └─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         LOCAL RUNBOOK STORE                                │
+│                                                                             │
+│  Built-in Runbooks (Markdown):                                              │
+│  • API Error & Timeout Triage                                               │
+│  • Async Processing Backlog                                                 │
+│  • Database Incident Triage                                                 │
+│  • Dependency & Resource Saturation                                         │
+│  • Deployment & Rollback                                                    │
+│  • Incident Communications Template                                         │
+│                                                                             │
+│  Uploaded Runbooks:                                                         │
+│  • Markdown/Text/PDF → Extracted text → Chunked → Embedded → In memory      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+KEY FLOW: User Input → Query Tokenization → Runbook Retrieval (RAG) →
+          Structured Prompt → Claude API → JSON Response → UI Display
+
+SECURITY & COST CONTROLS:
+├─ API keys stored only in backend environment variables
+├─ Daily Claude request limit (CLAUDE_DAILY_LIMIT env var)
+├─ Input length validation (frontend + backend)
+├─ CORS middleware for allowed origins
+├─ Mock mode for free demos (no API calls)
+└─ Graceful error handling with user-friendly messages
 ```
 
 ```text
@@ -104,18 +162,19 @@ FastAPI validates and controls the request
 App displays a consistent investigation brief
 ```
 
-Instead of sending raw logs directly to Claude, the FastAPI backend validates the request, retrieves relevant Markdown runbook guidance, builds a structured incident prompt, and calls Claude. This keeps the workflow repeatable and helps produce a consistent response with likely cause, evidence, next steps, related guidance, and a stakeholder-ready update draft.
+Instead of sending raw logs directly to Claude, the FastAPI backend validates the request, retrieves relevant runbook guidance, builds a structured incident prompt, and calls Claude. This keeps the workflow repeatable and helps produce a consistent response with likely cause, evidence, next steps, related guidance, and a stakeholder-ready update draft.
 
 ## RAG Flow
 
 AI Incident Copilot supports uploaded runbook guidance with a local vector-search workflow:
 
-1. User uploads a Markdown or text runbook.
-2. The FastAPI backend chunks the document.
-3. Each chunk is converted into a local sparse embedding.
-4. When an incident is submitted, the backend embeds the incident query.
-5. The app retrieves the most similar uploaded runbook chunks.
-6. Claude receives the incident details plus retrieved guidance to generate the response.
+1. User uploads a Markdown, text, or PDF runbook.
+2. The FastAPI backend extracts readable text from the document.
+3. The backend chunks the document into focused excerpts.
+4. Each chunk is converted into a local sparse embedding.
+5. When an incident is submitted, the backend embeds the incident query.
+6. The app retrieves the most similar uploaded runbook chunks.
+7. Claude receives the incident details plus retrieved guidance to generate the response.
 
 This grounds the analysis in runbook context instead of relying only on a raw prompt.
 

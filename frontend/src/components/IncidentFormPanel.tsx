@@ -144,7 +144,7 @@ export function IncidentFormPanel({
           {uploadedRunbook && <span className="char-count">{uploadedRunbook.chunkCount} chunks stored</span>}
         </span>
         <input
-          accept=".md,.txt,text/plain"
+          accept=".md,.txt,.pdf,text/plain,application/pdf"
           disabled={isRunbookUploading}
           onChange={(event) => onRunbookUpload(event.target.files?.[0])}
           ref={runbookUploadRef}
@@ -153,7 +153,7 @@ export function IncidentFormPanel({
         <span className="field-help">
           {isRunbookUploading
             ? 'Uploading and chunking runbook...'
-            : 'Upload a .md or .txt file under 100 KB. The backend stores chunks and retrieves only relevant excerpts.'}
+            : 'Upload a .md, .txt, or .pdf file under 2 MB. The backend stores chunks and retrieves only relevant excerpts.'}
         </span>
         {uploadedRunbook && (
           <span className="upload-status">

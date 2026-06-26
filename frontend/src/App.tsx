@@ -4,7 +4,7 @@ import { AnalysisPanel } from './components/AnalysisPanel'
 import { Hero } from './components/Hero'
 import { IncidentFormPanel } from './components/IncidentFormPanel'
 import { ScenarioPicker } from './components/ScenarioPicker'
-import { apiBaseUrl, demoScenarios, inputLimits, maxRunbookUploadBytes } from './constants'
+import { apiBaseUrl, demoScenarios, maxRunbookUploadBytes } from './constants'
 import type { DemoScenario, IncidentAnalysis, IncidentForm, StakeholderAudience, UploadedRunbookDocument } from './types'
 import { getErrorMessage, validateForm } from './utils/errors'
 import { downloadIncidentBrief } from './utils/exportBrief'
@@ -99,15 +99,21 @@ function App() {
       return
     }
 
-    const isSupportedFile = file.name.endsWith('.md') || file.name.endsWith('.txt') || file.type === 'text/plain'
+    const normalizedFileName = file.name.toLowerCase()
+    const isSupportedFile =
+      normalizedFileName.endsWith('.md') ||
+      normalizedFileName.endsWith('.txt') ||
+      normalizedFileName.endsWith('.pdf') ||
+      file.type === 'text/plain' ||
+      file.type === 'application/pdf'
 
     if (!isSupportedFile) {
-      setError('Upload a Markdown or text runbook file.')
+      setError('Upload a Markdown, text, or PDF runbook file.')
       return
     }
 
     if (file.size > maxRunbookUploadBytes) {
-      setError('Runbook file is too large. Upload a .md or .txt file under 100 KB.')
+      setError('Runbook file is too large. Upload a .md, .txt, or .pdf file under 2 MB.')
       return
     }
 
@@ -115,17 +121,12 @@ function App() {
     setError('')
 
     try {
-      const text = await file.text()
-      const trimmedText = text.slice(0, inputLimits.uploadedRunbookText)
+      const uploadForm = new FormData()
+      uploadForm.append('file', file)
+
       const response = await fetch(`${apiBaseUrl}/api/runbooks/upload`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          content: trimmedText,
-        }),
+        body: uploadForm,
       })
 
       if (!response.ok) {
@@ -140,11 +141,7 @@ function App() {
         uploadedRunbookText: '',
         runbookDocumentIds: [uploadedDocument.documentId],
       }))
-      setError(
-        text.length > inputLimits.uploadedRunbookText
-          ? 'Runbook was uploaded and trimmed to the first 25,000 characters for this demo.'
-          : '',
-      )
+      setError('')
     } catch (error) {
       setError(
         error instanceof Error

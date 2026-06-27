@@ -27,7 +27,7 @@ export function Hero({ analysisMode }: HeroProps) {
         <p>
           {analysisMode === 'claude'
             ? 'Real AI analysis using the backend Claude configuration'
-            : 'Free demo · deterministic results · preview before real Claude analysis'}
+            : 'Free demo · Deterministic results · Preview before real Claude analysis'}
         </p>
       </div>
     </section>

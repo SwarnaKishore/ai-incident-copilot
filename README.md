@@ -17,6 +17,16 @@ The app supports a free mock mode for demos and a Claude-powered mode for real A
 
 Note: The backend is hosted on Render's free tier, so the first request may take a short moment if the service has been inactive.
 
+## Screenshots
+
+### Workspace
+
+![AI Incident Copilot workspace](docs/images/incident-copilot-workspace.png)
+
+### Analysis Brief
+
+![AI Incident Copilot analysis brief](docs/images/incident-copilot-analysis.png)
+
 ## Quick Demo
 
 1. Pick a sample incident or paste logs from your service.
